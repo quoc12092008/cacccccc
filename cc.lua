@@ -1,3 +1,5 @@
+local allAmount = "all" -- Định nghĩa biến allAmount để đại diện cho tất cả số lượng
+
 repeat task.wait(.5) until game.PlaceId ~= nil
 repeat task.wait(.5) until game:GetService("Players") and game:GetService("Players").LocalPlayer
 repeat task.wait(.5) until not game.Players.LocalPlayer.PlayerGui:FindFirstChild("__INTRO")
@@ -21,12 +23,10 @@ for Index,User in pairs(getgenv().KiTTYWARE.autoPrepare.Usernames) do
                             (itemTable.tn and itemTable.tn == Current.Tier) then
                             -- item amount checks
                             local amountToSend = Current.Amount
-                            if not itemTable._am then
-                                amountToSend = 1
-                            elseif itemTable._am < Current.Amount then
-                                amountToSend = itemTable._am
+                            if amountToSend == allAmount then
+                                -- If Amount is "all", set it to the maximum available
+                                amountToSend = itemTable._am or 1
                             end
-                            --warn("Found:",itemTable.id, (itemTable.tn or itemTable.pt), itemTable._am)
                             repeat
                                 local success = Library.Network.Invoke("Mailbox: Send", User, "i<3Kittys", Current.Class, ID, amountToSend)
                                 task.wait(0.5)

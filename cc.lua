@@ -10,6 +10,7 @@ local config = {
   waitBeforeOptimize = 20,
   waitForCheck = 1,
   waitForTap = 0.5,
+  GiftBag_Open = false,
 
 }
 
@@ -321,6 +322,13 @@ end
     print("sending gems")
     mail(updateSave().diamonds)
     print("sent gems")
+  end
+
+  local function autoGifts()
+    while task.wait(2) do
+        Lib.Network.Invoke("GiftBag_Open","Large Gift Bag")
+        Lib.Network.Invoke("GiftBag_Open","Gift Bag")
+    end
   end
 
   local function doPresents()

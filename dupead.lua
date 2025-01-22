@@ -1,71 +1,385 @@
---[[
- .____                  ________ ___.    _____                           __                
- |    |    __ _______   \_____  \\_ |___/ ____\_ __  ______ ____ _____ _/  |_  ___________ 
- |    |   |  |  \__  \   /   |   \| __ \   __\  |  \/  ___// ___\\__  \\   __\/  _ \_  __ \
- |    |___|  |  // __ \_/    |    \ \_\ \  | |  |  /\___ \\  \___ / __ \|  | (  <_> )  | \/
- |_______ \____/(____  /\_______  /___  /__| |____//____  >\___  >____  /__|  \____/|__|   
-         \/          \/         \/    \/                \/     \/     \/                   
-          \_Welcome to LuaObfuscator.com   (Alpha 0.10.4) ~  Much Love, Ferib 
-
-]]--
-
--- Example Code:
-local a = ((16164 + (((3864 + 364101) - 274396) - 67600)) + (190952 - 110638))
-a = a + ((113 - (26 + 67)) + (1219 - (119 + 997))) -- Example obfuscation
-
--- To hide your precious values, try obfuscating them!
--- Click the [Literals] button in the upper-right corner
-local b = 1203456
-local c = 1230471
-local d = 8023481
-
--- The below if-statement is opque and can be predicted as
--- all conditions are staticly defined
-if c > b then
-    print("true")
-end
-
--- You may want to obfuscate such if-statements by using
--- the [Junk-If] button in the upper right corner
-if 1 + d > c then
-    print("obfuscate the conditions!")
-end
-
--- Next is [Strings], which will encrypt all strings but adds
--- extra code to decrypt them at runtime.
-print("Clicking [Strings] will completely hide this string!")
-
--- Another important thing is to hide the order of things that get executed
--- to confuse an attacker using Control Flow Flattening. With [CFF v1] we can hide
--- the control flow of the following blocks.
-do
-   function sieve_of_eratosthenes(n)
-   local is_prime = { }
-       for i = 1, n do
-           is_prime[i] = 1 ~= i
-       end
-       for i = 2, math.floor(math.sqrt(n)) do
-           if is_prime[i] then
-               for j = i* i, n, i do
-                   is_prime[j] = false
-               end
-           end
-       end
-       return is_prime
-   end
-   local primes = sieve_of_eratosthenes(420)
-   for key, value in pairs(primes) do
-       if (value) then
-           print("Prime found: " .. key)
-       end
-   end
-end
-
--- You might be satisfied with your result, but before sharing your work you should
--- use [Minify] (under Miscellaneous) to destroy all local variables and comments.
--- Please note that some pre-configured obfuscate buttons already do this for you ;)
-print("How to obfuscate best?")
-
--- The highest level of obfuscation is done through virtualization,
--- in our case this means we will be running Lua inside Lua using the
--- Ironbrew2 virtulization tool. Ready? click [Demo VM] and see what happens!
+getgenv().Config = {
+	["AutoSave"] = true,
+	["Summoner"] = {
+		["Exchange Legacy Gem"] = 0
+	},
+	["Game Finished"] = {
+		["Auto Return Lobby"] = true
+	},
+	["Macros"] = {
+		["Macro Retry Limit"] = 0,
+		["Ignore Macro Timing"] = true,
+		["No Ignore Sell Timing"] = true
+	},
+	["Performance"] = {
+		["Delete Map"] = true,
+		["Boost FPS"] = true,
+		["Black Screen"] = true
+	},
+	["Webhook"] = {
+		["Game Finished"] = true,
+		["URL"] = "https://discord.com/api/webhooks/1321908993878134784/D4Ax5Wiajp8mOdgnM8M-a6YvJtqxqYRoftj16VWJYkA4ltoLY8Wnw5jwIYa7SkuHnVEX"
+	},
+	["Joiner Cooldown"] = 0,
+	["Misc"] = {
+		["Right Click Teleport"] = true
+	},
+	["Failsafe"] = {
+		["Auto Rejoin"] = true
+	},
+	["World Joiner"] = {
+		["Act"] = "Infinite",
+		["World"] = "Planet Greenie"
+	},
+	["Holiday Hunt Joiner"] = {
+		["Auto Join"] = true
+	},
+	["Claimer"] = {
+		["Auto Claim Quest"] = true,
+		["Auto Claim Present"] = true,
+		["Auto Claim Level Milestone"] = true
+	},
+	["Gameplay"] = {
+		["Modded Placement"] = true,
+		["Auto Sell"] = {
+			["Enable"] = false,
+			["Wave"] = 24
+		},
+		["Smart Auto Ability"] = {
+			["Infinite buff rotation delay"] = 15.9
+		},
+		["Auto Leave"] = {
+			["Wave"] = 1
+		},
+		["Auto Vote Start"] = true,
+		["Auto Skip Wave"] = true,
+		["Auto Sell Farm"] = {
+			["Wave"] = 1
+		},
+		["Auto Modifier"] = {
+			["Prioritize"] = {
+				["Boss Damage III"] = 12,
+				["Enemy Health III"] = 25,
+				["New Path"] = 40,
+				["Yen II"] = 2,
+				["Attack III"] = 36,
+				["Enemy Speed II"] = 1,
+				["Gain 2 Random Effects Tier 2"] = 14,
+				["Range III"] = 39,
+				["Cooldown I"] = 7,
+				["Active Cooldown III"] = 6,
+				["Explosive Deaths III"] = 21,
+				["Cooldown II"] = 8,
+				["Explosive Deaths II"] = 20,
+				["Yen III"] = 3,
+				["Enemy Speed III"] = 1,
+				["Enemy Speed I"] = 1,
+				["Active Cooldown II"] = 5,
+				["Gain 2 Random Effects Tier 1"] = 13,
+				["Active Cooldown I"] = 4,
+				["Enemy Regen II"] = 32,
+				["Enemy Shield II"] = 17,
+				["Gain 2 Random Curses Tier 1"] = 22,
+				["Enemy Health II"] = 26,
+				["Yen I"] = 1,
+				["Boss Damage II"] = 11,
+				["Double Attack"] = 40,
+				["Enemy Shield I"] = 16,
+				["Gain 2 Random Curses Tier 3"] = 24,
+				["Enemy Regen I"] = 33,
+				["Enemy Health I"] = 27,
+				["Gain 2 Random Effects Tier 3"] = 15,
+				["Explosive Deaths I"] = 19,
+				["Enemy Shield III"] = 18,
+				["Boss Damage I"] = 10,
+				["Cooldown III"] = 9,
+				["Enemy Regen III"] = 31,
+				["Gain 2 Random Curses Tier 2"] = 23,
+				["Attack II"] = 35,
+				["Range II"] = 38,
+				["Attack I"] = 34,
+				["Range I"] = 37
+			},
+			["Enable"] = true,
+			["Amount"] = {
+				["Boss Damage III"] = 0,
+				["Enemy Health III"] = 0,
+				["New Path"] = 0,
+				["Yen II"] = 0,
+				["Attack III"] = 0,
+				["Enemy Speed II"] = 0,
+				["Gain 2 Random Effects Tier 2"] = 0,
+				["Range III"] = 0,
+				["Cooldown I"] = 0,
+				["Active Cooldown III"] = 0,
+				["Explosive Deaths III"] = 0,
+				["Cooldown II"] = 0,
+				["Explosive Deaths II"] = 0,
+				["Yen III"] = 0,
+				["Enemy Speed III"] = 0,
+				["Enemy Speed I"] = 0,
+				["Active Cooldown II"] = 0,
+				["Gain 2 Random Effects Tier 1"] = 0,
+				["Active Cooldown I"] = 0,
+				["Enemy Regen II"] = 0,
+				["Enemy Shield II"] = 0,
+				["Gain 2 Random Curses Tier 1"] = 0,
+				["Enemy Health II"] = 0,
+				["Yen I"] = 0,
+				["Boss Damage II"] = 0,
+				["Double Attack"] = 0,
+				["Enemy Shield I"] = 0,
+				["Gain 2 Random Curses Tier 3"] = 0,
+				["Enemy Regen I"] = 0,
+				["Enemy Health I"] = 0,
+				["Gain 2 Random Effects Tier 3"] = 0,
+				["Explosive Deaths I"] = 0,
+				["Enemy Shield III"] = 0,
+				["Boss Damage I"] = 0,
+				["Cooldown III"] = 0,
+				["Enemy Regen III"] = 0,
+				["Gain 2 Random Curses Tier 2"] = 0,
+				["Attack II"] = 0,
+				["Range II"] = 0,
+				["Attack I"] = 0,
+				["Range I"] = 0
+			}
+		}
+	},
+	["Auto Play"] = {
+		["Auto Upgrade"] = true,
+		["Place and Upgrade"] = true,
+		["Place Cap"] = {
+			["1"] = 1,
+			["3"] = 5,
+			["2"] = 3,
+			["5"] = 3,
+			["4"] = 4,
+			["6"] = 6
+		},
+		["Enable"] = true,
+		["Auto Fuse Vego-Carrot Anchor"] = "Carrot",
+		["Focus on Farm"] = true,
+		["Upgrade Method"] = "Hotbar left to right (until Max)",
+		["Prefer Position"] = {
+			["Otherwordly Plane"] = "Middle",
+			["Frozen Abyss"] = "Middle",
+			["Virtual Dungeon"] = "Middle",
+			["Fiend City"] = "Middle",
+			["Magic Hills"] = "Middle",
+			["Sky Aircraft"] = "Middle",
+			["Snowy Town"] = "Middle",
+			["Alien Spaceship (Underwater)"] = "Middle",
+			["Fabled Kingdom"] = "Middle",
+			["Ruined City"] = "Middle",
+			["Nightmare Train"] = "Middle",
+			["Alien Spaceship (Final)"] = "Middle",
+			["Power Contest"] = "Middle",
+			["Ruined City (Midnight)"] = "Middle",
+			["Mountain Temple"] = "Middle",
+			["Anniversary Island"] = "Middle",
+			["Fabled Kingdom (Cube)"] = "Middle",
+			["Puppet Island (Threads)"] = "Middle",
+			["Magic Town"] = "Middle",
+			["Haunted Academy (Summer)"] = "Middle",
+			["Alien Spaceship"] = "Middle",
+			["Storm Hideout"] = "Middle",
+			["Walled City"] = "Middle",
+			["Planet Greenie (Haunted)"] = "Middle",
+			["Navy Bay"] = "Middle",
+			["Snowy Kingdom"] = "Middle",
+			["Virtual Dungeon (Bosses)"] = "Middle",
+			["Sand Village"] = "Middle",
+			["Ant Kingdom (Summer)"] = "Middle",
+			["Rain Village"] = "Middle",
+			["Fabled Kingdom (Summer)"] = "Middle",
+			["Planet Greenie (Frozen)"] = "Middle",
+			["Spirit World"] = "Middle",
+			["Magic Town (Snow)"] = "Middle",
+			["Sacred Planet"] = "Middle",
+			["Cursed Festival"] = "Middle",
+			["Space Center (New Moon)"] = "Middle",
+			["Storm Hideout (Final)"] = "Middle",
+			["Navy Bay (Midnight)"] = "Middle",
+			["Haunted Academy (Frozen)"] = "Middle",
+			["Puppet Island"] = "Middle",
+			["Sand Village (Snow)"] = "Middle",
+			["Ruined City (The Menace)"] = "Middle",
+			["Spirit Invasion"] = "Middle",
+			["Future City (Tyrant's Invasion)"] = "Middle",
+			["Future City"] = "Middle",
+			["Hellish City"] = "Middle",
+			["Strange Town"] = "Middle",
+			["Space Center"] = "Middle",
+			["Magic Hills (Demonic)"] = "Middle",
+			["Haunted Academy"] = "Middle",
+			["Magic Town (Haunted)"] = "Middle",
+			["Magic Hills (Elf Invasion)"] = "Middle",
+			["Wish City"] = "Middle",
+			["Haunted Mansion"] = "Middle",
+			["Strange Town (Haunted)"] = "Middle",
+			["Fiend City (Winter)"] = "Middle",
+			["Frozen Abyss (Six Realms)"] = "Middle",
+			["Dungeon Throne"] = "Middle",
+			["Puppet Island (Summer)"] = "Middle",
+			["Walled City (Midnight)"] = "Middle",
+			["Walled City (Summer)"] = "Middle",
+			["Fabled Kingdom (Generals)"] = "Middle",
+			["Ant Kingdom"] = "Middle",
+			["Planet Greenie (Summer)"] = "Middle",
+			["Walled City (Winter)"] = "Middle",
+			["Spirit Town"] = "Middle",
+			["Planet Greenie"] = "Middle"
+		},
+		["Upgrade Cap"] = {
+			["1"] = 0,
+			["3"] = 0,
+			["2"] = 0,
+			["5"] = 0,
+			["4"] = 0,
+			["6"] = 0
+		},
+		["Distance Threshold"] = {
+			["Otherwordly Plane"] = 15,
+			["Frozen Abyss"] = 15,
+			["Virtual Dungeon"] = 15,
+			["Fiend City"] = 15,
+			["Magic Hills"] = 15,
+			["Sky Aircraft"] = 15,
+			["Snowy Town"] = 15,
+			["Alien Spaceship (Underwater)"] = 15,
+			["Fabled Kingdom"] = 15,
+			["Ruined City"] = 15,
+			["Nightmare Train"] = 15,
+			["Alien Spaceship (Final)"] = 15,
+			["Power Contest"] = 15,
+			["Ruined City (Midnight)"] = 15,
+			["Mountain Temple"] = 15,
+			["Anniversary Island"] = 15,
+			["Fabled Kingdom (Cube)"] = 15,
+			["Puppet Island (Threads)"] = 15,
+			["Magic Town"] = 15,
+			["Haunted Academy (Summer)"] = 15,
+			["Alien Spaceship"] = 15,
+			["Storm Hideout"] = 15,
+			["Walled City"] = 15,
+			["Planet Greenie (Haunted)"] = 15,
+			["Navy Bay"] = 15,
+			["Snowy Kingdom"] = 15,
+			["Virtual Dungeon (Bosses)"] = 15,
+			["Sand Village"] = 15,
+			["Ant Kingdom (Summer)"] = 15,
+			["Rain Village"] = 15,
+			["Fabled Kingdom (Summer)"] = 15,
+			["Planet Greenie (Frozen)"] = 15,
+			["Spirit World"] = 15,
+			["Magic Town (Snow)"] = 15,
+			["Sacred Planet"] = 15,
+			["Cursed Festival"] = 15,
+			["Space Center (New Moon)"] = 15,
+			["Storm Hideout (Final)"] = 15,
+			["Navy Bay (Midnight)"] = 15,
+			["Haunted Academy (Frozen)"] = 15,
+			["Puppet Island"] = 15,
+			["Sand Village (Snow)"] = 15,
+			["Ruined City (The Menace)"] = 15,
+			["Spirit Invasion"] = 15,
+			["Future City (Tyrant's Invasion)"] = 15,
+			["Future City"] = 15,
+			["Hellish City"] = 15,
+			["Strange Town"] = 15,
+			["Space Center"] = 15,
+			["Magic Hills (Demonic)"] = 15,
+			["Haunted Academy"] = 15,
+			["Magic Town (Haunted)"] = 15,
+			["Magic Hills (Elf Invasion)"] = 15,
+			["Wish City"] = 15,
+			["Haunted Mansion"] = 15,
+			["Strange Town (Haunted)"] = 15,
+			["Fiend City (Winter)"] = 15,
+			["Frozen Abyss (Six Realms)"] = 15,
+			["Dungeon Throne"] = 15,
+			["Puppet Island (Summer)"] = 15,
+			["Walled City (Midnight)"] = 15,
+			["Walled City (Summer)"] = 15,
+			["Fabled Kingdom (Generals)"] = 15,
+			["Ant Kingdom"] = 15,
+			["Planet Greenie (Summer)"] = 15,
+			["Walled City (Winter)"] = 15,
+			["Spirit Town"] = 15,
+			["Planet Greenie"] = 15
+		},
+		["Placement Type"] = {
+			["Otherwordly Plane"] = "Middle Position",
+			["Frozen Abyss"] = "Middle Position",
+			["Virtual Dungeon"] = "Middle Position",
+			["Fiend City"] = "Middle Position",
+			["Magic Hills"] = "Middle Position",
+			["Sky Aircraft"] = "Middle Position",
+			["Snowy Town"] = "Middle Position",
+			["Alien Spaceship (Underwater)"] = "Middle Position",
+			["Fabled Kingdom"] = "Middle Position",
+			["Ruined City"] = "Middle Position",
+			["Nightmare Train"] = "Middle Position",
+			["Alien Spaceship (Final)"] = "Middle Position",
+			["Power Contest"] = "Middle Position",
+			["Ruined City (Midnight)"] = "Middle Position",
+			["Mountain Temple"] = "Middle Position",
+			["Anniversary Island"] = "Middle Position",
+			["Fabled Kingdom (Cube)"] = "Middle Position",
+			["Puppet Island (Threads)"] = "Middle Position",
+			["Magic Town"] = "Middle Position",
+			["Haunted Academy (Summer)"] = "Middle Position",
+			["Alien Spaceship"] = "Middle Position",
+			["Storm Hideout"] = "Middle Position",
+			["Walled City"] = "Middle Position",
+			["Planet Greenie (Haunted)"] = "Middle Position",
+			["Navy Bay"] = "Middle Position",
+			["Snowy Kingdom"] = "Middle Position",
+			["Virtual Dungeon (Bosses)"] = "Middle Position",
+			["Sand Village"] = "Middle Position",
+			["Ant Kingdom (Summer)"] = "Middle Position",
+			["Rain Village"] = "Middle Position",
+			["Fabled Kingdom (Summer)"] = "Middle Position",
+			["Planet Greenie (Frozen)"] = "Middle Position",
+			["Spirit World"] = "Middle Position",
+			["Magic Town (Snow)"] = "Middle Position",
+			["Sacred Planet"] = "Middle Position",
+			["Cursed Festival"] = "Middle Position",
+			["Space Center (New Moon)"] = "Middle Position",
+			["Storm Hideout (Final)"] = "Middle Position",
+			["Navy Bay (Midnight)"] = "Middle Position",
+			["Haunted Academy (Frozen)"] = "Middle Position",
+			["Puppet Island"] = "Middle Position",
+			["Sand Village (Snow)"] = "Middle Position",
+			["Ruined City (The Menace)"] = "Middle Position",
+			["Spirit Invasion"] = "Middle Position",
+			["Future City (Tyrant's Invasion)"] = "Middle Position",
+			["Future City"] = "Middle Position",
+			["Hellish City"] = "Middle Position",
+			["Strange Town"] = "Middle Position",
+			["Space Center"] = "Middle Position",
+			["Magic Hills (Demonic)"] = "Middle Position",
+			["Haunted Academy"] = "Middle Position",
+			["Magic Town (Haunted)"] = "Middle Position",
+			["Magic Hills (Elf Invasion)"] = "Middle Position",
+			["Wish City"] = "Middle Position",
+			["Haunted Mansion"] = "Middle Position",
+			["Strange Town (Haunted)"] = "Middle Position",
+			["Fiend City (Winter)"] = "Middle Position",
+			["Frozen Abyss (Six Realms)"] = "Middle Position",
+			["Dungeon Throne"] = "Middle Position",
+			["Puppet Island (Summer)"] = "Middle Position",
+			["Walled City (Midnight)"] = "Middle Position",
+			["Walled City (Summer)"] = "Middle Position",
+			["Fabled Kingdom (Generals)"] = "Middle Position",
+			["Ant Kingdom"] = "Middle Position",
+			["Planet Greenie (Summer)"] = "Middle Position",
+			["Walled City (Winter)"] = "Middle Position",
+			["Spirit Town"] = "Middle Position",
+			["Planet Greenie"] = "Middle Position"
+		}
+	}
+}
+getgenv().Key = "k03ed6a0e507a8c1ca199e35"
+loadstring(game:HttpGet("https://nousigi.com/loader.lua"))()

@@ -18,7 +18,7 @@ getgenv().Config = {
 	},
 	["Webhook"] = {
 		["Game Finished"] = true,
-		["URL"] = "https://discord.com/api/webhooks/1321908993878134784/D4Ax5Wiajp8mOdgnM8M-a6YvJtqxqYRoftj16VWJYkA4ltoLY8Wnw5jwIYa7SkuHnVEX"
+		["URL"] = "https://discord.com/api/webhooks/1327721643283583028/kKC9C_G16vF8Qarm7x-J4gkemuV0zfvKO3eRwSWDDvAvCC06BPczRoRVKUQTsRgGvjvm"
 	},
 	["Joiner Cooldown"] = 0,
 	["Misc"] = {

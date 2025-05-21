@@ -80,7 +80,7 @@ toggleButton.MouseButton1Click:Connect(function()
 
     task.spawn(function()
         repeat task.wait() until player:FindFirstChild("leaderstats")
-        wait(20)
+        wait(10)
 
         player.CharacterAdded:Connect(function(character)
             character:WaitForChild("HumanoidRootPart")

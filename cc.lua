@@ -29,7 +29,7 @@ end
 -- ✅ Đợi leaderstats và 20 giây
 if waitForLeaderstats(60) then
     print("leaderstats đã sẵn sàng. Chờ thêm 20 giây...")
-    task.wait(20)
+    task.wait(10)
 else
     warn("Không tìm thấy leaderstats sau 60 giây.")
     return

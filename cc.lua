@@ -29,9 +29,9 @@ end
 -- ✅ Đợi leaderstats và 20 giây
 if waitForLeaderstats(10) then
     print("leaderstats đã sẵn sàng. Chờ thêm 10 giây...")
-    task.wait(10)
+    task.wait(5)
 else
-    warn("Không tìm thấy leaderstats sau 60 giây.")
+    warn("Không tìm thấy leaderstats sau 5 giây.")
     return
 end
 
@@ -153,6 +153,6 @@ toggleButton.MouseButton1Click:Connect(function()
 
     while true do
         farmingGiftEvent:FireServer(unpack(args))
-        wait(6)
+        wait(3)
     end
 end)

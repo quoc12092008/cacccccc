@@ -27,7 +27,7 @@ local function waitForLeaderstats(timeout)
 end
 
 -- ✅ Đợi leaderstats và 20 giây
-if waitForLeaderstats(20) then
+if waitForLeaderstats(10) then
     print("leaderstats đã sẵn sàng. Chờ thêm 10 giây...")
     task.wait(10)
 else

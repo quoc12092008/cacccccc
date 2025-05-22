@@ -7,7 +7,7 @@ local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
 -- 🛡️ Tên người chơi bị chặn chạy script (gán từ bên ngoài)
-getgenv().AllowedPlayerName = getgenv().AllowedPlayerName or "tiger12092008"
+getgenv().AllowedPlayerName = getgenv().AllowedPlayerName
 
 if player.Name ~= getgenv().AllowedPlayerName then
     warn("Bạn không được phép sử dụng script này.")

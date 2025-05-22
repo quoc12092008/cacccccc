@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
 -- ✅ Cấu hình tên người chơi bị chặn và người nhận quà
-local blockedName = getgenv().BlockedPlayerName
+local blockedName = getgenv().BlockedPlayerName or "Atomic_CircuitIcc"
 
 -- ❌ Không cho user chạy nếu tên bị chặn
 if player.Name == blockedName then

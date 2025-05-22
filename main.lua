@@ -7,7 +7,7 @@ local TeleportService = game:GetService("TeleportService")
 local player = Players.LocalPlayer
 local targetPlaceId = game.PlaceId
 local targetJobId = getgenv().jobId or "5f4b7a59-4ee2-4a69-b628-b1335659f50b"
-local blockedName = getgenv().BlockedPlayerName or "tiger12092008"
+local blockedName = getgenv().BlockedPlayerName
 
 -- ❌ Chặn người dùng
 if player.Name == blockedName then

@@ -1,151 +1,117 @@
--- Roblox FPS Booster Script
--- Giúp tối ưu hóa hiệu suất game
-
+-- FPS Booster CỰC MẠNH + GUI ẩn/hiện bằng phím F
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
+local guiVisible = true
 
--- Tối ưu hóa đồ họa
+-- GUI
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "FPSBoosterUI"
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0.7, 0, 0.5, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 8)
+
+local label = Instance.new("TextLabel", frame)
+label.Size = UDim2.new(1, 0, 1, 0)
+label.Text = "FPS Booster: Đang hoạt động"
+label.TextColor3 = Color3.new(1, 1, 1)
+label.BackgroundTransparency = 1
+label.Font = Enum.Font.Gotham
+label.TextSize = 14
+label.TextWrapped = true
+
+-- Tối ưu ánh sáng
 local function optimizeGraphics()
-    -- Giảm chất lượng ánh sáng
     if Lighting then
         Lighting.GlobalShadows = false
-        Lighting.FogEnd = 9e9
         Lighting.Brightness = 0
-        
-        -- Xóa các hiệu ứng ánh sáng không cần thiết
-        for _, effect in pairs(Lighting:GetChildren()) do
-            if effect:IsA("PostEffect") then
-                effect.Enabled = false
+        Lighting.FogEnd = 1e10
+        for _, v in ipairs(Lighting:GetChildren()) do
+            if v:IsA("PostEffect") then
+                v.Enabled = false
             end
         end
     end
-    
-    -- Tối ưu hóa Workspace
-    if Workspace then
-        Workspace.StreamingEnabled = true
-        if Workspace.Terrain then
-            Workspace.Terrain.WaterWaveSize = 0
-            Workspace.Terrain.WaterWaveSpeed = 0
-            Workspace.Terrain.WaterReflectance = 0
-            Workspace.Terrain.WaterTransparency = 0
-        end
+    if Workspace.Terrain then
+        Workspace.Terrain.WaterWaveSize = 0
+        Workspace.Terrain.WaterWaveSpeed = 0
+        Workspace.Terrain.WaterReflectance = 0
+        Workspace.Terrain.WaterTransparency = 0
     end
 end
 
--- Xóa các part không cần thiết để tăng FPS
-local function removeUnnecessaryParts()
+-- Tối ưu part
+local function optimizeParts()
     for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("Part") or obj:IsA("MeshPart") then
-            -- Tắt Shadows
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then
             obj.CastShadow = false
-            
-            -- Giảm chất lượng material
-            if obj.Material == Enum.Material.Grass then
-                obj.Material = Enum.Material.Plastic
-            elseif obj.Material == Enum.Material.Concrete then
-                obj.Material = Enum.Material.Plastic
-            end
+            obj.Material = Enum.Material.SmoothPlastic
         elseif obj:IsA("Decal") or obj:IsA("Texture") then
-            -- Xóa decal và texture không quan trọng (tùy chọn)
-            if not obj.Parent:IsA("Tool") and not obj.Parent.Parent == player.Character then
-                obj.Transparency = 1
-            end
-        elseif obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
-            -- Xóa hiệu ứng particle
-            if obj.Parent ~= player.Character then
-                obj:Destroy()
-            end
+            obj.Transparency = 1
+        elseif obj:IsA("ParticleEmitter") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Beam") or obj:IsA("Trail") then
+            obj:Destroy()
         end
     end
 end
 
--- Tối ưu hóa camera
+-- Tắt âm thanh
+local function muteAudio()
+    for _, s in pairs(Workspace:GetDescendants()) do
+        if s:IsA("Sound") then
+            s.Volume = 0
+        end
+    end
+end
+
+-- Tối ưu camera
 local function optimizeCamera()
-    local camera = Workspace.CurrentCamera
-    if camera then
-        camera.FieldOfView = 70 -- Giảm FOV để tăng FPS
+    local cam = Workspace.CurrentCamera
+    if cam then
+        cam.FieldOfView = 70
     end
 end
 
--- Tối ưu hóa âm thanh
-local function optimizeAudio()
-    for _, sound in pairs(Workspace:GetDescendants()) do
-        if sound:IsA("Sound") then
-            sound.Volume = sound.Volume * 0.5 -- Giảm âm lượng
-        end
-    end
-end
-
--- Tối ưu hóa rendering
-local function optimizeRendering()
-    -- Giảm render distance
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local humanoidRootPart = player.Character.HumanoidRootPart
-        
-        for _, part in pairs(Workspace:GetPartBoundsInRegion(
-            Region3.new(
-                humanoidRootPart.Position - Vector3.new(500, 500, 500),
-                humanoidRootPart.Position + Vector3.new(500, 500, 500)
-            ), 1000)) do
-            
-            if part and part.Parent ~= player.Character then
-                local distance = (part.Position - humanoidRootPart.Position).Magnitude
-                if distance > 300 then
-                    part.CanCollide = false
-                    if part:IsA("BasePart") then
-                        part.CastShadow = false
-                    end
-                end
-            end
-        end
-    end
-end
-
--- Cleanup memory
-local function cleanupMemory()
+-- Thu dọn bộ nhớ
+local function cleanup()
     collectgarbage("collect")
 end
 
--- Chạy tối ưu hóa
-print("Đang khởi động FPS Booster...")
-
-optimizeGraphics()
-optimizeCamera()
-optimizeAudio()
-removeUnnecessaryParts()
-
-print("FPS Booster đã được kích hoạt!")
-
--- Chạy tối ưu hóa liên tục
-local optimizeConnection
-optimizeConnection = RunService.Heartbeat:Connect(function()
-    optimizeRendering()
-    
-    -- Cleanup memory mỗi 30 giây
-    if tick() % 30 < 0.1 then
-        cleanupMemory()
-    end
+-- Tự động tối ưu liên tục
+RunService.Heartbeat:Connect(function()
+    optimizeParts()
 end)
 
--- Cleanup khi player leave
-Players.PlayerRemoving:Connect(function(leavingPlayer)
-    if leavingPlayer == player then
-        if optimizeConnection then
-            optimizeConnection:Disconnect()
-        end
-    end
-end)
-
--- Thông báo FPS hiện tại (tùy chọn)
-spawn(function()
+-- Tự động cleanup mỗi 20s
+task.spawn(function()
     while true do
-        wait(5)
-        local fps = math.floor(1 / RunService.Heartbeat:Wait())
-        print("FPS hiện tại: " .. fps)
+        wait(20)
+        cleanup()
+    end
+end)
+
+-- Tự chạy khi load game
+task.defer(function()
+    print("🔧 Đang khởi động FPS Booster...")
+    optimizeGraphics()
+    optimizeCamera()
+    muteAudio()
+    optimizeParts()
+    print("✅ FPS Booster CỰC MẠNH đang chạy!")
+end)
+
+-- Ẩn/hiện GUI bằng phím F
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.F then
+        guiVisible = not guiVisible
+        screenGui.Enabled = guiVisible
     end
 end)

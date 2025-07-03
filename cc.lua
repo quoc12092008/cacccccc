@@ -1,147 +1,144 @@
---=== CONFIG ===--
-local webhookUrl = "https://discord.com/api/webhooks/1378811253765574767/t5lFqOqiM641yFiPN6_GJpiTlzzY3m2UIMIH7g9Jye_lfZUIyXkPQum5IiwPmRWbp7pe"
-
---=== SUPPORT ===--
-function findMyPlot(debug)
-    for _, plot in pairs(workspace.Plots:GetChildren()) do
-        local owner = plot:FindFirstChild("Owner")
-        if owner and owner.Value == game.Players.LocalPlayer then
-            if debug then print("Found plot: "..plot.Name) end
-            return plot
+-- Function to find your plot
+local function findMyPlot(shouldWarn)
+    local player = game.Players.LocalPlayer
+    if not player then
+        if shouldWarn then warn("LocalPlayer not found!") end
+        return nil
+    end
+    
+    -- Try different common plot folder names
+    local plotFolders = {"Plots", "PlayerPlots", "PlotFolder"}
+    local workspace = game:GetService("Workspace")
+    
+    for _, folderName in ipairs(plotFolders) do
+        local plotFolder = workspace:FindFirstChild(folderName)
+        if plotFolder then
+            local myPlot = plotFolder:FindFirstChild(player.Name) or plotFolder:FindFirstChild("Plot_" .. player.Name)
+            if myPlot then
+                return myPlot
+            end
         end
     end
+    
+    if shouldWarn then warn("Could not find your plot!") end
     return nil
 end
 
-function getPetDataFromSpawn(spawn)
+-- Function to get pet data from spawn (you'll need to adapt this to your game's structure)
+local function getPetDataFromSpawn(spawn)
     if not spawn then return nil end
-    local petModel = spawn:FindFirstChildOfClass("Model")
-    if not petModel then return nil end
-
-    local name = petModel.Name
-    local mut = petModel:FindFirstChild("Mutation") and petModel.Mutation.Value or "Normal"
-    local rar = petModel:FindFirstChild("Rarity") and petModel.Rarity.Value or "Common"
-    local price = petModel:FindFirstChild("Price") and petModel.Price.Value or 0
-
-    return {
-        name = name,
-        mut = mut,
-        rar = rar,
-        price = price
-    }
+    
+    -- This is a generic example - you'll need to adapt this based on your game's data structure
+    local pet = spawn:FindFirstChild("Pet") or spawn:FindFirstChildOfClass("Model")
+    if not pet then return nil end
+    
+    -- Try to find data in different ways
+    local data = {}
+    
+    -- Method 1: Check for StringValues/IntValues
+    data.name = pet:FindFirstChild("PetName") and pet.PetName.Value or "Unknown"
+    data.mut = pet:FindFirstChild("Mutation") and pet.Mutation.Value or "None"
+    data.rar = pet:FindFirstChild("Rarity") and pet.Rarity.Value or "Common"
+    data.price = pet:FindFirstChild("Price") and pet.Price.Value or 0
+    
+    -- Method 2: Check for Configuration folder
+    local config = pet:FindFirstChild("Configuration")
+    if config then
+        data.name = config:FindFirstChild("Name") and config.Name.Value or data.name
+        data.mut = config:FindFirstChild("Mutation") and config.Mutation.Value or data.mut
+        data.rar = config:FindFirstChild("Rarity") and config.Rarity.Value or data.rar
+        data.price = config:FindFirstChild("Price") and config.Price.Value or data.price
+    end
+    
+    return data
 end
 
-function sendWebhook(content)
-    local HttpService = game:GetService("HttpService")
-    local data = {
-        ["content"] = content
-    }
-    local jsonData = HttpService:JSONEncode(data)
-
-    syn.request({
-        Url = webhookUrl,
-        Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json"
-        },
-        Body = jsonData
-    })
-end
-
-function listPetsInPlot()
-    local plot = findMyPlot(true)
+-- Main function to list pets in plot
+local function listPetsInPlot(plot)
     if not plot then
         warn("Plot not found!")
         return
     end
-
+    
     local podFolder = plot:FindFirstChild("AnimalPodiums")
     if not podFolder then
         warn("No AnimalPodiums folder in plot")
         return
     end
-
-    local finalLog = "=== Pets in Your Plot ===\n"
-
+    
+    print("=== Pets in Your Plot ===")
+    local petCount = 0
+    
     for _, podium in ipairs(podFolder:GetChildren()) do
-        local basePart = podium:FindFirstChild("Base")
-        local spawn = basePart and basePart:FindFirstChild("Spawn")
-        local data = getPetDataFromSpawn(spawn)
-        if data then
-            local line = string.format(
-                ":feet: Name: %s | Mutation: %s | Rarity: %s | Price: $%s",
-                data.name,
-                data.mut,
-                data.rar,
-                tostring(data.price)
-            )
-            print(line)
-            finalLog = finalLog .. line .. "\n"
-        else
-            local line = "[Slot " .. podium.Name .. "] Empty or invalid spawn"
-            print(line)
-            finalLog = finalLog .. line .. "\n"
+        if podium:IsA("Model") or podium:IsA("Part") then
+            local basePart = podium:FindFirstChild("Base")
+            local spawn = basePart and basePart:FindFirstChild("Spawn")
+            
+            if not spawn then
+                -- Try alternative paths
+                spawn = podium:FindFirstChild("Spawn")
+            end
+            
+            local data = getPetDataFromSpawn(spawn)
+            if data then
+                petCount = petCount + 1
+                print(string.format(
+                    "🐾 Name: %s | Mutation: %s | Rarity: %s | Price: $%s",
+                    data.name,
+                    data.mut,
+                    data.rar,
+                    tostring(data.price)
+                ))
+            else
+                print("[Slot " .. podium.Name .. "] Empty or invalid spawn")
+            end
         end
     end
-
-    sendWebhook(finalLog)
+    
+    if petCount == 0 then
+        print("No pets found in your plot!")
+    else
+        print("Total pets found: " .. petCount)
+    end
 end
 
---=== SIMPLE CUSTOM GUI ===--
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local PlayerGui = player:WaitForChild("PlayerGui")
+-- Debug function to help identify the structure
+local function debugPlotStructure(plot)
+    if not plot then
+        print("Plot is nil")
+        return
+    end
+    
+    print("=== Plot Structure Debug ===")
+    print("Plot name:", plot.Name)
+    print("Plot children:")
+    for _, child in ipairs(plot:GetChildren()) do
+        print("  -", child.Name, "(" .. child.ClassName .. ")")
+        if child.Name == "AnimalPodiums" then
+            print("    AnimalPodiums children:")
+            for _, podium in ipairs(child:GetChildren()) do
+                print("      -", podium.Name, "(" .. podium.ClassName .. ")")
+            end
+        end
+    end
+end
 
--- Tạo ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MyCustomPetGUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = PlayerGui
-
--- Frame
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 120)
-frame.Position = UDim2.new(0.5, -100, 0.5, -60)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
-
--- Tiêu đề
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,0,0,30)
-title.BackgroundTransparency = 1
-title.Text = "Pet Viewer"
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 20
-title.Parent = frame
-
--- Button Scan
-local scanButton = Instance.new("TextButton")
-scanButton.Size = UDim2.new(1, -20, 0, 35)
-scanButton.Position = UDim2.new(0,10,0,40)
-scanButton.Text = "📝 Quét Pet + Gửi"
-scanButton.TextColor3 = Color3.fromRGB(255,255,255)
-scanButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-scanButton.Font = Enum.Font.SourceSans
-scanButton.TextSize = 18
-scanButton.Parent = frame
-
-scanButton.MouseButton1Click:Connect(function()
-    listPetsInPlot()
-end)
-
--- Button Đóng
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(1, -20, 0, 30)
-closeButton.Position = UDim2.new(0,10,0,80)
-closeButton.Text = "❌ Đóng GUI"
-closeButton.TextColor3 = Color3.fromRGB(255,255,255)
-closeButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-closeButton.Font = Enum.Font.SourceSans
-closeButton.TextSize = 18
-closeButton.Parent = frame
-
-closeButton.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-end)
+-- Main execution
+local myPlot = findMyPlot(true)
+if myPlot then
+    print("Found plot:", myPlot.Name)
+    
+    -- Run debug first to see structure
+    debugPlotStructure(myPlot)
+    
+    -- Then try to list pets
+    listPetsInPlot(myPlot)
+else
+    print("Could not find your plot. Available plots:")
+    local workspace = game:GetService("Workspace")
+    for _, child in ipairs(workspace:GetChildren()) do
+        if string.find(child.Name:lower(), "plot") then
+            print("  -", child.Name)
+        end
+    end
+end

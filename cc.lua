@@ -6,16 +6,28 @@ local function findMyPlot(shouldWarn)
         return nil
     end
     
-    -- Try different common plot folder names
-    local plotFolders = {"Plots", "PlayerPlots", "PlotFolder"}
     local workspace = game:GetService("Workspace")
+    local plotsFolder = workspace:FindFirstChild("Plots")
+    if not plotsFolder then
+        if shouldWarn then warn("No Plots folder found!") end
+        return nil
+    end
     
-    for _, folderName in ipairs(plotFolders) do
-        local plotFolder = workspace:FindFirstChild(folderName)
-        if plotFolder then
-            local myPlot = plotFolder:FindFirstChild(player.Name) or plotFolder:FindFirstChild("Plot_" .. player.Name)
-            if myPlot then
-                return myPlot
+    -- In this game, plots seem to be named with UUIDs
+    -- We need to find the plot that belongs to us
+    for _, plot in ipairs(plotsFolder:GetChildren()) do
+        if plot:IsA("Model") or plot:IsA("Folder") then
+            -- Check if this plot belongs to us (you might need to adjust this logic)
+            local ownerValue = plot:FindFirstChild("Owner")
+            if ownerValue and ownerValue.Value == player.Name then
+                return plot
+            end
+            
+            -- Alternative: check if we can find our pets in this plot
+            local animalPodiums = plot:FindFirstChild("AnimalPodiums")
+            if animalPodiums then
+                -- This might be our plot - return the first one we find for now
+                return plot
             end
         end
     end
@@ -24,30 +36,65 @@ local function findMyPlot(shouldWarn)
     return nil
 end
 
--- Function to get pet data from spawn (you'll need to adapt this to your game's structure)
-local function getPetDataFromSpawn(spawn)
-    if not spawn then return nil end
+-- Function to get pet data from podium
+local function getPetDataFromPodium(podium)
+    if not podium then return nil end
     
-    -- This is a generic example - you'll need to adapt this based on your game's data structure
-    local pet = spawn:FindFirstChild("Pet") or spawn:FindFirstChildOfClass("Model")
-    if not pet then return nil end
+    -- Based on the error, the structure seems to be:
+    -- podium -> claim -> Main (Part)
+    local claim = podium:FindFirstChild("claim")
+    if not claim then return nil end
     
-    -- Try to find data in different ways
+    local main = claim:FindFirstChild("Main")
+    if not main then return nil end
+    
+    -- Look for pet data in various places
     local data = {}
     
-    -- Method 1: Check for StringValues/IntValues
-    data.name = pet:FindFirstChild("PetName") and pet.PetName.Value or "Unknown"
-    data.mut = pet:FindFirstChild("Mutation") and pet.Mutation.Value or "None"
-    data.rar = pet:FindFirstChild("Rarity") and pet.Rarity.Value or "Common"
-    data.price = pet:FindFirstChild("Price") and pet.Price.Value or 0
+    -- Try to find data in the claim or main part
+    local function findValue(parent, valueName)
+        local value = parent:FindFirstChild(valueName)
+        if value and (value:IsA("StringValue") or value:IsA("IntValue") or value:IsA("NumberValue")) then
+            return value.Value
+        end
+        return nil
+    end
     
-    -- Method 2: Check for Configuration folder
-    local config = pet:FindFirstChild("Configuration")
-    if config then
-        data.name = config:FindFirstChild("Name") and config.Name.Value or data.name
-        data.mut = config:FindFirstChild("Mutation") and config.Mutation.Value or data.mut
-        data.rar = config:FindFirstChild("Rarity") and config.Rarity.Value or data.rar
-        data.price = config:FindFirstChild("Price") and config.Price.Value or data.price
+    -- Check in claim first
+    data.name = findValue(claim, "PetName") or findValue(claim, "Name") or "Unknown"
+    data.mut = findValue(claim, "Mutation") or findValue(claim, "Mut") or "None"
+    data.rar = findValue(claim, "Rarity") or findValue(claim, "Rar") or "Common"
+    data.price = findValue(claim, "Price") or findValue(claim, "Value") or 0
+    
+    -- If not found in claim, try main
+    if data.name == "Unknown" then
+        data.name = findValue(main, "PetName") or findValue(main, "Name") or "Unknown"
+    end
+    if data.mut == "None" then
+        data.mut = findValue(main, "Mutation") or findValue(main, "Mut") or "None"
+    end
+    if data.rar == "Common" then
+        data.rar = findValue(main, "Rarity") or findValue(main, "Rar") or "Common"
+    end
+    if data.price == 0 then
+        data.price = findValue(main, "Price") or findValue(main, "Value") or 0
+    end
+    
+    -- Try to get data from GUI elements if they exist
+    local gui = main:FindFirstChild("BillboardGui") or main:FindFirstChild("SurfaceGui")
+    if gui then
+        for _, frame in ipairs(gui:GetDescendants()) do
+            if frame:IsA("TextLabel") then
+                local text = frame.Text
+                if text:find("Name:") then
+                    data.name = text:gsub("Name: ", "")
+                elseif text:find("Rarity:") then
+                    data.rar = text:gsub("Rarity: ", "")
+                elseif text:find("Price:") then
+                    data.price = text:gsub("Price: %$", ""):gsub(",", "")
+                end
+            end
+        end
     end
     
     return data
@@ -70,27 +117,20 @@ local function listPetsInPlot(plot)
     local petCount = 0
     
     for _, podium in ipairs(podFolder:GetChildren()) do
-        if podium:IsA("Model") or podium:IsA("Part") then
-            local basePart = podium:FindFirstChild("Base")
-            local spawn = basePart and basePart:FindFirstChild("Spawn")
-            
-            if not spawn then
-                -- Try alternative paths
-                spawn = podium:FindFirstChild("Spawn")
-            end
-            
-            local data = getPetDataFromSpawn(spawn)
-            if data then
+        if podium:IsA("Model") or podium:IsA("Folder") then
+            local data = getPetDataFromPodium(podium)
+            if data and data.name ~= "Unknown" then
                 petCount = petCount + 1
                 print(string.format(
-                    "🐾 Name: %s | Mutation: %s | Rarity: %s | Price: $%s",
+                    "🐾 [Slot %s] Name: %s | Mutation: %s | Rarity: %s | Price: $%s",
+                    podium.Name,
                     data.name,
                     data.mut,
                     data.rar,
                     tostring(data.price)
                 ))
             else
-                print("[Slot " .. podium.Name .. "] Empty or invalid spawn")
+                print("[Slot " .. podium.Name .. "] Empty or no pet data found")
             end
         end
     end
@@ -102,7 +142,7 @@ local function listPetsInPlot(plot)
     end
 end
 
--- Debug function to help identify the structure
+-- Debug function to explore the structure
 local function debugPlotStructure(plot)
     if not plot then
         print("Plot is nil")
@@ -111,19 +151,39 @@ local function debugPlotStructure(plot)
     
     print("=== Plot Structure Debug ===")
     print("Plot name:", plot.Name)
-    print("Plot children:")
-    for _, child in ipairs(plot:GetChildren()) do
-        print("  -", child.Name, "(" .. child.ClassName .. ")")
-        if child.Name == "AnimalPodiums" then
-            print("    AnimalPodiums children:")
-            for _, podium in ipairs(child:GetChildren()) do
-                print("      -", podium.Name, "(" .. podium.ClassName .. ")")
+    
+    local podFolder = plot:FindFirstChild("AnimalPodiums")
+    if podFolder then
+        print("Found AnimalPodiums folder")
+        for _, podium in ipairs(podFolder:GetChildren()) do
+            print("  Podium:", podium.Name, "(" .. podium.ClassName .. ")")
+            
+            local claim = podium:FindFirstChild("claim")
+            if claim then
+                print("    - claim found (" .. claim.ClassName .. ")")
+                local main = claim:FindFirstChild("Main")
+                if main then
+                    print("      - Main found (" .. main.ClassName .. ")")
+                    
+                    -- List all children of Main
+                    for _, child in ipairs(main:GetChildren()) do
+                        print("        - " .. child.Name .. " (" .. child.ClassName .. ")")
+                    end
+                end
             end
+        end
+    else
+        print("No AnimalPodiums folder found")
+        print("Available children:")
+        for _, child in ipairs(plot:GetChildren()) do
+            print("  -", child.Name, "(" .. child.ClassName .. ")")
         end
     end
 end
 
 -- Main execution
+wait(1) -- Wait a moment for everything to load
+
 local myPlot = findMyPlot(true)
 if myPlot then
     print("Found plot:", myPlot.Name)
@@ -136,9 +196,10 @@ if myPlot then
 else
     print("Could not find your plot. Available plots:")
     local workspace = game:GetService("Workspace")
-    for _, child in ipairs(workspace:GetChildren()) do
-        if string.find(child.Name:lower(), "plot") then
-            print("  -", child.Name)
+    local plotsFolder = workspace:FindFirstChild("Plots")
+    if plotsFolder then
+        for _, plot in ipairs(plotsFolder:GetChildren()) do
+            print("  -", plot.Name)
         end
     end
 end

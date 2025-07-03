@@ -5,10 +5,7 @@ local CoreGui = game:GetService("CoreGui")
 
 -- Ví dụ Animals, sửa cho đúng pet của bạn
 local Animals = {
-    ["La Vacca Saturno Saturnita"] = true,
-    ["Los Tralaleritos"] = true,
-    ["Graipuss Medussi"] = true,
-    ["La Grande Combinasion"] = true,
+    ["La Vacca Saturno Saturnita"] = {Rarity = "Secret", Price = 50000000},
 }
 -- Tìm plot của bạn
 local function findMyPlot(waitForSpawn)
@@ -46,11 +43,6 @@ local function getPetDataFromSpawn(spawn)
     local name = lbl and lbl.Text
     if not name or name == "" then return nil end
 
-    -- kiểm tra có nằm trong Animals không
-    if not Animals[name] then
-        return nil
-    end
-
     local mut = "Normal"
     local mutVal = spawn:FindFirstChild("Mutation") or spawn:FindFirstChild("MutateLevel")
     if mutVal then
@@ -61,7 +53,8 @@ local function getPetDataFromSpawn(spawn)
         end
     end
 
-    return {name=name, mut=mut}
+    local info = Animals[name] or {}
+    return {name=name, mut=mut, rar=info.Rarity or "Unknown", price=info.Price or 0}
 end
 
 -- Liệt kê pet trong plot
@@ -79,6 +72,7 @@ local function listPetsInPlot(plot)
     return pets
 end
 
+-- Tạo UI hiển thị danh sách pet
 local function createPetUI(petList)
     -- Xóa UI cũ nếu có
     if CoreGui:FindFirstChild("PetDisplayGUI") then
@@ -108,7 +102,7 @@ local function createPetUI(petList)
 
     for i, pet in ipairs(petList) do
         local label = Instance.new("TextLabel")
-        label.Text = string.format("[%d] %s | %s", i, pet.name, pet.mut)
+        label.Text = string.format("[%d] %s | %s | %s | $%s", i, pet.name, pet.mut, pet.rar, tostring(pet.price))
         label.Font = Enum.Font.SourceSans
         label.TextSize = 16
         label.TextColor3 = Color3.fromRGB(255,255,255)

@@ -1,12 +1,12 @@
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
 
--- Ví dụ dữ liệu Animals. Bạn phải thêm pet thật trong game.
+-- Ví dụ Animals, sửa cho đúng pet của bạn
 local Animals = {
     ["La Vacca Saturno Saturnita"] = {Rarity = "Secret", Price = 50000000},
 }
-
 -- Tìm plot của bạn
 local function findMyPlot(waitForSpawn)
     local localPlayer = Players.LocalPlayer
@@ -72,16 +72,53 @@ local function listPetsInPlot(plot)
     return pets
 end
 
+-- Tạo UI hiển thị danh sách pet
+local function createPetUI(petList)
+    -- Xóa UI cũ nếu có
+    if CoreGui:FindFirstChild("PetDisplayGUI") then
+        CoreGui.PetDisplayGUI:Destroy()
+    end
+
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "PetDisplayGUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = CoreGui
+
+    local frame = Instance.new("Frame")
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BackgroundTransparency = 0.2
+    frame.Size = UDim2.new(0, 300, 0, 20 + (#petList * 25))
+    frame.Position = UDim2.new(0, 10, 0, 10)
+    frame.Parent = screenGui
+
+    local title = Instance.new("TextLabel")
+    title.Text = "🐾 Your Pets 🐾"
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 20
+    title.TextColor3 = Color3.fromRGB(255,255,255)
+    title.BackgroundTransparency = 1
+    title.Size = UDim2.new(1,0,0,25)
+    title.Parent = frame
+
+    for i, pet in ipairs(petList) do
+        local label = Instance.new("TextLabel")
+        label.Text = string.format("[%d] %s | %s | %s | $%s", i, pet.name, pet.mut, pet.rar, tostring(pet.price))
+        label.Font = Enum.Font.SourceSans
+        label.TextSize = 16
+        label.TextColor3 = Color3.fromRGB(255,255,255)
+        label.BackgroundTransparency = 1
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Position = UDim2.new(0,5,0,(i * 20) + 5)
+        label.Size = UDim2.new(1,-10,0,20)
+        label.Parent = frame
+    end
+end
+
 -- Chạy
 local myPlot = findMyPlot(true)
 if myPlot then
     local pets = listPetsInPlot(myPlot)
-    for i, pet in ipairs(pets) do
-        print(string.format(
-            "🐾 [%d] Name: %s | Mutation: %s | Rarity: %s | Price: $%s",
-            i, pet.name, pet.mut, pet.rar, tostring(pet.price)
-        ))
-    end
+    createPetUI(pets)
 else
     warn("Could not locate your plot.")
 end

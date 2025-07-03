@@ -5,7 +5,10 @@ local CoreGui = game:GetService("CoreGui")
 
 -- Ví dụ Animals, sửa cho đúng pet của bạn
 local Animals = {
-    ["La Vacca Saturno Saturnita"] = {Rarity = "Secret", Price = 50000000},
+    ["La Vacca Saturno Saturnita"] = true,
+    ["Los Tralaleritos"] = true,
+    ["Graipuss Medussi"] = true,
+    ["La Grande Combinasion"] = true,
 }
 -- Tìm plot của bạn
 local function findMyPlot(waitForSpawn)
@@ -43,6 +46,11 @@ local function getPetDataFromSpawn(spawn)
     local name = lbl and lbl.Text
     if not name or name == "" then return nil end
 
+    -- kiểm tra có nằm trong Animals không
+    if not Animals[name] then
+        return nil
+    end
+
     local mut = "Normal"
     local mutVal = spawn:FindFirstChild("Mutation") or spawn:FindFirstChild("MutateLevel")
     if mutVal then
@@ -53,8 +61,7 @@ local function getPetDataFromSpawn(spawn)
         end
     end
 
-    local info = Animals[name] or {}
-    return {name=name, mut=mut, rar=info.Rarity or "Unknown", price=info.Price or 0}
+    return {name=name, mut=mut}
 end
 
 -- Liệt kê pet trong plot

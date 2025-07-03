@@ -72,7 +72,6 @@ local function listPetsInPlot(plot)
     return pets
 end
 
--- Tạo UI hiển thị danh sách pet
 local function createPetUI(petList)
     -- Xóa UI cũ nếu có
     if CoreGui:FindFirstChild("PetDisplayGUI") then
@@ -102,7 +101,7 @@ local function createPetUI(petList)
 
     for i, pet in ipairs(petList) do
         local label = Instance.new("TextLabel")
-        label.Text = string.format("[%d] %s | %s | %s | $%s", i, pet.name, pet.mut, pet.rar, tostring(pet.price))
+        label.Text = string.format("[%d] %s | %s", i, pet.name, pet.mut)
         label.Font = Enum.Font.SourceSans
         label.TextSize = 16
         label.TextColor3 = Color3.fromRGB(255,255,255)

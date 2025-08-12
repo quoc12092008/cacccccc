@@ -29,12 +29,12 @@ local TIMING_CONFIG = {
 
 local allowedPets = {
     "La Vacca Saturno Saturnita", 
-    "Chimpazini Spiderini", 
+    "Chimpanzini Spiderini", 
     "Karkerkar Kurkur",
     "Los Tralaleritos", 
     "Las Tralaleritas",
     "Graipuss Medussi",
-    "La Grande Combinasionas", 
+    "La Grande Combinasion", 
     "Chicleteira Bicicleteira", 
     "Garama and Madundung"
 }

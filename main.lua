@@ -36,7 +36,9 @@ local allowedPets = {
     "Graipuss Medussi",
     "La Grande Combinasion", 
     "Chicleteira Bicicleteira", 
-    "Garama and Madundung"
+    "Garama and Madundung",
+	"Job Job Job Sahur"
+	
 }
 
 local allowedPetSet = {}

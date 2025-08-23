@@ -38,7 +38,8 @@ local allowedPets = {
     "Chicleteira Bicicleteira", 
     "Garama and Madundung",
     "Job Job Job Sahur",
-    "Secret Lucky Block"
+    "Secret Lucky Block",
+	"Lucky Block"
 }
 
 local allowedPetSet = {}

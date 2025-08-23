@@ -41,7 +41,8 @@ local allowedPets = {
     "Secret Lucky Block",
 	"Lucky Block",
 	"Sammyni Spyderini",
-	"Dul Dul Dul"
+	"Dul Dul Dul",
+	"Blsonte Gluppltere"	
 }
 
 local allowedPetSet = {}

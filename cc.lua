@@ -23,7 +23,7 @@ local API_CONFIG = {
 local TIMING_CONFIG = {
     petCheckInterval = 30,
     apiSendInterval = 120,
-    forceUpdateInterval = 600,
+    forceUpdateInterval = 480,
     authCheckInterval = 300
 }
 

@@ -13,7 +13,7 @@ if not getgenv().PET_TRACKER_KEY or getgenv().PET_TRACKER_KEY == "" then
 end
 
 local API_CONFIG = {
-    baseUrl = "http://160.250.128.16:3000/trackgameantrom",
+	baseUrl = "http://160.250.128.16:3000/trackgameantrom",
     enabled = true,
     timeout = 15,
     retryAttempts = 3,
@@ -39,10 +39,10 @@ local allowedPets = {
     "Garama and Madundung",
     "Job Job Job Sahur",
     "Secret Lucky Block",
-    "Lucky Block",
-    "Sammyni Spyderini",
-    "Dul Dul Dul",
-    "Blsonte Gluppltere",
+	"Lucky Block",
+	"Sammyni Spyderini",
+	"Dul Dul Dul",
+	"Blsonte Gluppltere",
     "Lucky Block Secret"
 }
 
@@ -134,7 +134,7 @@ local function authenticateWithServer()
     else
         warn("❌ Authentication Error: " .. tostring(result))
         
-        if tostring(result):find("Key not found") or tostring(result):find("Key expired") then
+        if tostring(result):find("INVALID_KEY") then
             warn("❌ KEY KHÔNG HỢP LỆ: Key '" .. getgenv().PET_TRACKER_KEY .. "' không tồn tại hoặc đã hết hạn")
             warn("💡 Kiểm tra lại key hoặc liên hệ admin để được cấp key mới")
         end
@@ -179,7 +179,7 @@ local function checkAuthenticationStatus()
     else
         warn("⚠️ Auth check failed: " .. tostring(result))
         
-        if tostring(result):find("401") or tostring(result):find("Session not found") or tostring(result):find("Session expired") then
+        if tostring(result):find("401") or tostring(result):find("INVALID_SESSION") then
             sessionToken = nil
             isAuthenticated = false
             userInfo = nil
@@ -215,7 +215,6 @@ local function sendDataToAPI(accountName, pets, isForced)
             local requestData = {
                 pets = pets,
                 timestamp = os.time(),
-                mode = "replace", -- Thêm mode cho Fastify server
                 game_info = {
                     place_id = game.PlaceId,
                     player_id = LocalPlayer.UserId,
@@ -275,18 +274,8 @@ local function sendDataToAPI(accountName, pets, isForced)
                 else
                     error("Re-authentication failed")
                 end
-            elseif response.StatusCode == 403 then
-                if response.Body and (response.Body:find("Slot limit reached") or response.Body:find("slots")) then
-                    error("❌ SLOT LIMIT EXCEEDED: Vượt quá " .. (userInfo and userInfo.slots or "unknown") .. " slots")
-                else
-                    error("❌ FORBIDDEN: " .. (response.Body or "Access denied"))
-                end
-            elseif response.StatusCode == 429 then
-                error("❌ RATE LIMITED: Too many requests. Wait and retry.")
-            elseif response.StatusCode == 400 then
-                error("❌ BAD REQUEST: " .. (response.Body or "Invalid data sent"))
-            elseif response.StatusCode == 500 then
-                error("❌ SERVER ERROR: " .. (response.Body or "Internal server error"))
+            elseif response.StatusCode == 403 and response.Body and response.Body:find("SLOT_LIMIT_EXCEEDED") then
+                error("❌ SLOT LIMIT EXCEEDED: Account vượt quá số slot cho phép (" .. (userInfo and userInfo.slots or "unknown") .. " slots)")
             else
                 error("HTTP Error: " .. (response.StatusCode or "Unknown") .. " - " .. (response.Body or "No response"))
             end
@@ -374,12 +363,7 @@ local function getPetDataFromSpawn(spawn)
         end
     end
 
-    return {
-        name = name, 
-        mut = mut,
-        id = name .. "_" .. mut .. "_" .. tostring(tick()):gsub("%.", "") .. "_" .. math.random(1000, 9999),
-        addedAt = os.date("%Y-%m-%dT%H:%M:%SZ")
-    }
+    return {name = name, mut = mut}
 end
 
 local function getAllowedPetsInPlot(plot)
@@ -426,12 +410,7 @@ local function comparePetLists(oldPets, newPets)
         if count > oldCount then
             local name, mut = key:match("([^|]+)|(.+)")
             for i = 1, count - oldCount do
-                table.insert(added, {
-                    name = name, 
-                    mut = mut,
-                    id = name .. "_" .. mut .. "_" .. tostring(tick()):gsub("%.", "") .. "_" .. math.random(1000, 9999),
-                    addedAt = os.date("%Y-%m-%dT%H:%M:%SZ")
-                })
+                table.insert(added, {name = name, mut = mut})
             end
         end
     end

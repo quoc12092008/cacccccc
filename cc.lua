@@ -13,7 +13,7 @@ if not getgenv().PET_TRACKER_KEY or getgenv().PET_TRACKER_KEY == "" then
 end
 
 local API_CONFIG = {
-	baseUrl = "http://160.250.128.16:3000/trackgameantrom",
+	baseUrl = "https://tracksab.com/trackgameantrom",
     enabled = true,
     timeout = 15,
     retryAttempts = 3,

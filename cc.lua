@@ -15,7 +15,7 @@ end
 -- Script update configuration
 local UPDATE_CONFIG = {
     scriptUrl = "https://raw.githubusercontent.com/quoc12092008/cacccccc/refs/heads/main/cc.lua",
-    checkInterval = 60, -- Check for updates every 60 seconds
+    checkInterval = 10, -- Check for updates every 60 seconds
     versionEndpoint = "https://raw.githubusercontent.com/quoc12092008/cacccccc/refs/heads/main/version.txt" -- Optional version file
 }
 

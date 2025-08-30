@@ -51,7 +51,7 @@ for _, petName in ipairs(allowedPets) do
     allowedPetSet[petName:lower()] = true
 end
 
-local sessionToken = nil
+-- Removed sessionToken - server uses simple key validation
 local lastAuthCheck = 0
 local isAuthenticated = false
 local userInfo = nil
@@ -73,6 +73,7 @@ local stats = {
     startTime = tick()
 }
 
+-- FIX 1: Updated authentication function to match server API
 local function authenticateWithServer()
     if not http then
         warn("❌ HTTP request function không có sẵn. Cần exploit có syn.request hoặc http_request")
@@ -85,7 +86,8 @@ local function authenticateWithServer()
     end
     
     local success, result = pcall(function()
-        local url = API_CONFIG.baseUrl .. "/api/auth/login"
+        -- FIX: Changed to /validate endpoint which exists in server
+        local url = API_CONFIG.baseUrl .. "/api/auth/validate"
         
         local requestData = {
             key = getgenv().PET_TRACKER_KEY
@@ -109,14 +111,15 @@ local function authenticateWithServer()
             local responseData = HttpService:JSONDecode(response.Body)
             
             if responseData.success then
-                sessionToken = responseData.sessionToken
-                userInfo = responseData.user
+                -- FIX: Server returns keyInfo instead of sessionToken
+                userInfo = responseData.keyInfo
                 isAuthenticated = true
                 
                 print("✅ Authentication successful!")
-                print("👤 Username: " .. userInfo.username)
+                print("🔑 Key: " .. userInfo.key)
                 print("🎯 Slots: " .. userInfo.slots)
                 print("📅 Expires: " .. userInfo.expiry)
+                print("📝 Description: " .. userInfo.description)
                 
                 return true, responseData
             else
@@ -134,8 +137,8 @@ local function authenticateWithServer()
     else
         warn("❌ Authentication Error: " .. tostring(result))
         
-        if tostring(result):find("INVALID_KEY") then
-            warn("❌ KEY KHÔNG HỢP LỆ: Key '" .. getgenv().PET_TRACKER_KEY .. "' không tồn tại hoặc đã hết hạn")
+        if tostring(result):find("Key does not exist") or tostring(result):find("Key has expired") then
+            warn("❌ KEY PROBLEM: " .. tostring(result))
             warn("💡 Kiểm tra lại key hoặc liên hệ admin để được cấp key mới")
         end
         
@@ -143,9 +146,10 @@ local function authenticateWithServer()
     end
 end
 
+-- FIX 2: Updated auth check function
 local function checkAuthenticationStatus()
-    if not sessionToken then
-        return false, "No session token"
+    if not isAuthenticated then
+        return false, "Not authenticated"
     end
     
     local success, result = pcall(function()
@@ -156,7 +160,8 @@ local function checkAuthenticationStatus()
             Method = "GET",
             Headers = {
                 ["Accept"] = "application/json",
-                ["Authorization"] = "Bearer " .. sessionToken
+                -- FIX: Use X-API-Key header instead of Authorization Bearer
+                ["X-API-Key"] = getgenv().PET_TRACKER_KEY
             }
         })
         
@@ -164,7 +169,7 @@ local function checkAuthenticationStatus()
             local responseData = HttpService:JSONDecode(response.Body)
             
             if responseData.success then
-                userInfo = responseData.user
+                userInfo = responseData.keyInfo
                 return true, responseData
             else
                 error("Auth check failed: " .. (responseData.error or "Unknown error"))
@@ -179,8 +184,7 @@ local function checkAuthenticationStatus()
     else
         warn("⚠️ Auth check failed: " .. tostring(result))
         
-        if tostring(result):find("401") or tostring(result):find("INVALID_SESSION") then
-            sessionToken = nil
+        if tostring(result):find("401") or tostring(result):find("API key required") then
             isAuthenticated = false
             userInfo = nil
         end
@@ -189,12 +193,13 @@ local function checkAuthenticationStatus()
     end
 end
 
+-- FIX 3: Updated sendDataToAPI function
 local function sendDataToAPI(accountName, pets, isForced)
     if not API_CONFIG.enabled then
         return false, "API disabled"
     end
     
-    if not isAuthenticated or not sessionToken then
+    if not isAuthenticated then
         warn("❌ Chưa authenticate. Thử authenticate lại...")
         local authSuccess = authenticateWithServer()
         if not authSuccess then
@@ -212,6 +217,7 @@ local function sendDataToAPI(accountName, pets, isForced)
         local success, result = pcall(function()
             local url = API_CONFIG.baseUrl .. "/api/accounts/" .. HttpService:UrlEncode(accountName)
             
+            -- FIX: Updated request structure to match server expectations
             local requestData = {
                 pets = pets,
                 timestamp = os.time(),
@@ -221,20 +227,15 @@ local function sendDataToAPI(accountName, pets, isForced)
                     display_name = LocalPlayer.DisplayName,
                     server_id = game.JobId
                 },
-                metadata = {
-                    total_pets = #pets,
-                    check_type = isForced and "forced" or "scheduled",
-                    client_time = os.date("%Y-%m-%d %H:%M:%S"),
-                    attempt = attempt,
-                    key_user = userInfo and userInfo.username or "unknown"
-                }
+                -- FIX: Added mode parameter (server expects this)
+                mode = "replace"  -- or "append" if you want to add pets instead of replacing
             }
             
             local jsonData = HttpService:JSONEncode(requestData)
             
             if attempt == 1 then
                 print("📡 Đang gửi data tới: " .. url)
-                print("👤 User: " .. (userInfo and userInfo.username or "unknown"))
+                print("🔑 Key User: " .. (userInfo and userInfo.description or "unknown"))
                 print("📋 Pets: " .. #pets .. " | Type: " .. (isForced and "FORCED" or "SCHEDULED"))
             end
             
@@ -244,7 +245,8 @@ local function sendDataToAPI(accountName, pets, isForced)
                 Headers = {
                     ["Content-Type"] = "application/json",
                     ["Accept"] = "application/json",
-                    ["Authorization"] = "Bearer " .. sessionToken
+                    -- FIX: Use X-API-Key instead of Authorization Bearer
+                    ["X-API-Key"] = getgenv().PET_TRACKER_KEY
                 },
                 Body = jsonData
             })
@@ -254,7 +256,7 @@ local function sendDataToAPI(accountName, pets, isForced)
                 
                 if responseData.success then
                     if attempt > 1 then
-                        print("✅ API Success (attempt " .. attempt .. "): " .. response.Body)
+                        print("✅ API Success (attempt " .. attempt .. "): " .. responseData.message)
                     else
                         print("✅ API Response: " .. responseData.message)
                     end
@@ -264,9 +266,8 @@ local function sendDataToAPI(accountName, pets, isForced)
                     error("API Error: " .. (responseData.error or "Unknown error"))
                 end
             elseif response.StatusCode == 401 then
-                warn("🔐 Session expired, re-authenticating...")
+                warn("🔐 Key invalid or expired, re-authenticating...")
                 isAuthenticated = false
-                sessionToken = nil
                 
                 local authSuccess = authenticateWithServer()
                 if authSuccess then
@@ -274,8 +275,13 @@ local function sendDataToAPI(accountName, pets, isForced)
                 else
                     error("Re-authentication failed")
                 end
-            elseif response.StatusCode == 403 and response.Body and response.Body:find("SLOT_LIMIT_EXCEEDED") then
-                error("❌ SLOT LIMIT EXCEEDED: Account vượt quá số slot cho phép (" .. (userInfo and userInfo.slots or "unknown") .. " slots)")
+            elseif response.StatusCode == 403 then
+                local errorMsg = response.Body or ""
+                if errorMsg:find("Slot limit reached") then
+                    error("❌ SLOT LIMIT EXCEEDED: Account vượt quá số slot cho phép (" .. (userInfo and userInfo.slots or "unknown") .. " slots)")
+                else
+                    error("❌ FORBIDDEN: " .. errorMsg)
+                end
             else
                 error("HTTP Error: " .. (response.StatusCode or "Unknown") .. " - " .. (response.Body or "No response"))
             end
@@ -316,6 +322,7 @@ local function sendDataToAPI(accountName, pets, isForced)
     return false, lastError
 end
 
+-- Rest of the functions remain the same...
 local function findMyPlot(waitForSpawn)
     local deadline = tick() + (waitForSpawn and 10 or 0)
     repeat
@@ -439,7 +446,7 @@ local function displayPetsInConsole(pets, isInitial)
         print("\n" .. string.rep("=", 80))
         print("🔐 KHỞI CHẠY AUTHENTICATED PET MONITOR")
         print("⏰ Thời gian: " .. os.date("%Y-%m-%d %H:%M:%S"))
-        print("🔑 Key User: " .. (userInfo and userInfo.username or "Not authenticated"))
+        print("🔑 Key Description: " .. (userInfo and userInfo.description or "Not authenticated"))
         print("🎯 Slots: " .. (userInfo and userInfo.slots or "Unknown"))
         print("📊 Tổng số pet được phép tìm thấy: " .. #pets)
         print("📡 API URL: " .. API_CONFIG.baseUrl)
@@ -607,19 +614,18 @@ local function startPetMonitor(plot)
     end)
     
     print("🚀 Authenticated Pet Monitor đã khởi chạy!")
-    print("🔑 User: " .. userInfo.username .. " (" .. userInfo.slots .. " slots)")
+    print("🔑 Key: " .. userInfo.description .. " (" .. userInfo.slots .. " slots)")
     print("📝 Chỉ hiển thị " .. #allowedPets .. " loại pet được phép.")
     print("🕐 Check pets mỗi " .. TIMING_CONFIG.petCheckInterval .. "s, gửi API mỗi " .. TIMING_CONFIG.apiSendInterval .. "s")
     print("🔐 Auth check mỗi " .. TIMING_CONFIG.authCheckInterval .. "s")
     print("⚠️ Để dừng monitor, chạy lại script hoặc reset.")
 end
 
--- Global API để user có thể sử dụng
+-- Updated Global API
 _G.PetTrackerAuth = {
     setKey = function(newKey)
         getgenv().PET_TRACKER_KEY = newKey
         isAuthenticated = false
-        sessionToken = nil
         userInfo = nil
         print("🔑 Key updated to: " .. string.rep("*", #newKey))
         print("💡 Chạy lại script để authenticate với key mới")
@@ -639,7 +645,7 @@ _G.PetTrackerAuth = {
             math.floor((stats.successfulCalls / stats.totalApiCalls) * 100) or 0
         
         print("\n📊 AUTHENTICATED PET TRACKER STATISTICS:")
-        print("🔑 Key User: " .. (userInfo and userInfo.username or "Not authenticated"))
+        print("🔑 Key Description: " .. (userInfo and userInfo.description or "Not authenticated"))
         print("🎯 Slots: " .. (userInfo and userInfo.slots or "Unknown"))
         print("🔐 Authenticated: " .. (isAuthenticated and "Yes" or "No"))
         print("⏰ Uptime: " .. math.floor(uptime / 60) .. " minutes")

@@ -25,7 +25,7 @@ if not getgenv().PET_TRACKER_RUNNING then
 end
 
 -- Set current version from script
-local currentVersion = "1.0.1"
+local currentVersion = "1.0.2"
 getgenv().PET_TRACKER_VERSION = currentVersion
 
 -- Stop any existing instance

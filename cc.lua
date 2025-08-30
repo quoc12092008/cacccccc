@@ -1,4 +1,4 @@
--- VERSION: 1.0.2
+-- VERSION: 1.0.1
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")

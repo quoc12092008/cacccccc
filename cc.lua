@@ -66,9 +66,10 @@ local allowedPets = {
     "Dul Dul Dul",
     "Blsonte Gluppltere",
     "Lucky Block Secret",
-    "Ketchuru and Musturu",
-    "Ketupat Kepat",
-    "Gueriro Digitale"
+   "Ketchuru and Musturu",
+   "Ketupat Kepat",
+   "Guerirro Digitale",
+   "Nucclearo Dinossauro"
 }
 
 local allowedPetSet = {}

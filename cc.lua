@@ -107,31 +107,29 @@ getgenv().PET_TRACKER_STOP = stopScript
 -- Check for script updates
 local function checkForUpdates()
     if not http then return false end
-    
+
     local success, result = pcall(function()
+        -- Lấy version mới từ version.txt
         local response = http({
-            Url = UPDATE_CONFIG.scriptUrl,
+            Url = UPDATE_CONFIG.versionEndpoint,
             Method = "GET",
             Headers = {
                 ["Cache-Control"] = "no-cache",
                 ["Pragma"] = "no-cache"
             }
         })
-        
+
         if response.Success then
-            local newScript = response.Body
-            
-            -- Extract version from new script
-            local newVersion = newScript:match("-- VERSION: ([%d%.]+)")
+            local newVersion = response.Body:match("%d+%.%d+%.%d+")
             if newVersion and newVersion ~= getgenv().PET_TRACKER_VERSION then
                 getgenv().PET_TRACKER_VERSION = newVersion
                 return true, newVersion
             end
         end
-        
+
         return false
     end)
-    
+
     if success then
         return result
     else
@@ -139,6 +137,7 @@ local function checkForUpdates()
         return false
     end
 end
+
 
 -- Reload script
 local function reloadScript()

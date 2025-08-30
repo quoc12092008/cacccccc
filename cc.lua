@@ -1,4 +1,3 @@
--- VERSION: 1.0.2
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -16,7 +15,7 @@ end
 -- Script update configuration
 local UPDATE_CONFIG = {
     scriptUrl = "https://raw.githubusercontent.com/quoc12092008/cacccccc/refs/heads/main/cc.lua",
-    checkInterval = 30, -- Check for updates every 60 seconds
+    checkInterval = 10, -- Check for updates every 60 seconds
     versionEndpoint = "https://raw.githubusercontent.com/quoc12092008/cacccccc/refs/heads/main/version.txt" -- Optional version file
 }
 
@@ -107,29 +106,31 @@ getgenv().PET_TRACKER_STOP = stopScript
 -- Check for script updates
 local function checkForUpdates()
     if not http then return false end
-
+    
     local success, result = pcall(function()
-        -- Lấy version mới từ version.txt
         local response = http({
-            Url = UPDATE_CONFIG.versionEndpoint,
+            Url = UPDATE_CONFIG.scriptUrl,
             Method = "GET",
             Headers = {
                 ["Cache-Control"] = "no-cache",
                 ["Pragma"] = "no-cache"
             }
         })
-
+        
         if response.Success then
-            local newVersion = response.Body:match("%d+%.%d+%.%d+")
+            local newScript = response.Body
+            
+            -- Extract version from new script
+            local newVersion = newScript:match("-- VERSION: ([%d%.]+)")
             if newVersion and newVersion ~= getgenv().PET_TRACKER_VERSION then
                 getgenv().PET_TRACKER_VERSION = newVersion
                 return true, newVersion
             end
         end
-
+        
         return false
     end)
-
+    
     if success then
         return result
     else
@@ -137,7 +138,6 @@ local function checkForUpdates()
         return false
     end
 end
-
 
 -- Reload script
 local function reloadScript()

@@ -70,7 +70,9 @@ local allowedPets = {
     "Ketupat Kepat",
      "Guerirro Digitale",
     "Nucclearo Dinossauro",
-    "Nooo My Hotspot"
+    "Nooo My Hotspot",
+    "Extinct Tralalero",
+    "Extinct Matteo"
 }
 
 local allowedPetSet = {}

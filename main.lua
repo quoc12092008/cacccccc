@@ -74,7 +74,6 @@ local allowedPets = {
     "Extinct Tralalero",
     "Extinct Matteo",
     "Chachechi",
-    -- Add your special pets
     "Admin Lucky Block",
     "Taco Lucky Block"
 }

@@ -73,7 +73,9 @@ local allowedPets = {
     "Nooo My Hotspot",
     "Extinct Tralalero",
     "Extinct Matteo",
-    "Chachechi"
+    "Chachechi",
+    "Admin Lucky Block",
+    "Taco Lucky Block"
 }
 
 local allowedPetSet = {}
@@ -229,6 +231,7 @@ local function sendDataToAPI(accountName, pets)
                     table.insert(formattedPets, {
                         name = pet.name,
                         mut = pet.mut,
+                        count = pet.count or 1, -- Add count field
                         id = pet.name .. "_" .. pet.mut .. "_" .. os.time() .. "_" .. math.random(100000, 999999),
                         addedAt = os.date("!%Y-%m-%dT%H:%M:%SZ")
                     })
@@ -298,14 +301,18 @@ local function sendDataToAPI(accountName, pets)
     return false
 end
 
--- Find player's plot
+-- Enhanced find player's plot (combining both methods)
 local function findMyPlot()
+    -- Method 1: Check Owner tag
     for _, plot in ipairs(Workspace.Plots:GetChildren()) do
         local ownerTag = plot:FindFirstChild("Owner")
         if ownerTag and ownerTag.Value == LocalPlayer then
             return plot
         end
-        
+    end
+    
+    -- Method 2: Check plot sign text
+    for _, plot in ipairs(Workspace.Plots:GetChildren()) do
         local sign = plot:FindFirstChild("PlotSign")
         local label = sign and sign:FindFirstChild("SurfaceGui") and sign.SurfaceGui.Frame:FindFirstChild("TextLabel")
         if label then
@@ -315,10 +322,32 @@ local function findMyPlot()
             end
         end
     end
+    
     return nil
 end
 
--- Get pet data from spawn
+-- Enhanced pet counting with multiple detection methods
+local function countPetsDirectly(plot)
+    local counts = {}
+    
+    -- Initialize counts for all allowed pets
+    for _, petName in ipairs(allowedPets) do
+        counts[petName] = 0
+    end
+    
+    if not plot then return counts end
+    
+    -- Method 1: Direct children counting (from your logic)
+    for _, child in ipairs(plot:GetChildren()) do
+        if allowedPetSet[child.Name:lower()] then
+            counts[child.Name] = (counts[child.Name] or 0) + 1
+        end
+    end
+    
+    return counts
+end
+
+-- Get pet data from spawn (original method)
 local function getPetDataFromSpawn(spawn)
     if not spawn then return nil end
 
@@ -346,24 +375,56 @@ local function getPetDataFromSpawn(spawn)
     return {name = name, mut = mut}
 end
 
--- Get all allowed pets in plot
+-- Get all allowed pets in plot (enhanced with counting)
 local function getAllowedPetsInPlot(plot)
     local pets = {}
-    local podFolder = plot and plot:FindFirstChild("AnimalPodiums")
-    if not podFolder then return pets end
+    local petCounts = countPetsDirectly(plot) -- Use direct counting method
     
-    for _, podium in ipairs(podFolder:GetChildren()) do
-        if podium:IsA("Model") then
-            local base = podium:FindFirstChild("Base")
-            if base then
-                local spawn = base:FindFirstChild("Spawn")
-                local data = getPetDataFromSpawn(spawn)
-                if data and allowedPetSet[data.name:lower()] then
-                    table.insert(pets, data)
+    -- Add pets from direct counting
+    for petName, count in pairs(petCounts) do
+        if count > 0 and allowedPetSet[petName:lower()] then
+            for i = 1, count do
+                table.insert(pets, {
+                    name = petName,
+                    mut = "Normal", -- Default mutation
+                    count = 1
+                })
+            end
+        end
+    end
+    
+    -- Also check podiums method for additional data
+    local podFolder = plot and plot:FindFirstChild("AnimalPodiums")
+    if podFolder then
+        for _, podium in ipairs(podFolder:GetChildren()) do
+            if podium:IsA("Model") then
+                local base = podium:FindFirstChild("Base")
+                if base then
+                    local spawn = base:FindFirstChild("Spawn")
+                    local data = getPetDataFromSpawn(spawn)
+                    if data and allowedPetSet[data.name:lower()] then
+                        -- Check if this pet is already counted by direct method
+                        local alreadyCounted = false
+                        for _, existingPet in ipairs(pets) do
+                            if existingPet.name == data.name and existingPet.mut == data.mut then
+                                alreadyCounted = true
+                                break
+                            end
+                        end
+                        
+                        if not alreadyCounted then
+                            table.insert(pets, {
+                                name = data.name,
+                                mut = data.mut,
+                                count = 1
+                            })
+                        end
+                    end
                 end
             end
         end
     end
+    
     return pets
 end
 
@@ -374,12 +435,12 @@ local function comparePetLists(oldPets, newPets)
     
     for _, pet in ipairs(oldPets) do
         local key = pet.name .. "|" .. pet.mut
-        oldPetMap[key] = (oldPetMap[key] or 0) + 1
+        oldPetMap[key] = (oldPetMap[key] or 0) + (pet.count or 1)
     end
     
     for _, pet in ipairs(newPets) do
         local key = pet.name .. "|" .. pet.mut
-        newPetMap[key] = (newPetMap[key] or 0) + 1
+        newPetMap[key] = (newPetMap[key] or 0) + (pet.count or 1)
     end
     
     local added = {}
@@ -390,7 +451,7 @@ local function comparePetLists(oldPets, newPets)
         if count > oldCount then
             local name, mut = key:match("([^|]+)|(.+)")
             for i = 1, count - oldCount do
-                table.insert(added, {name = name, mut = mut})
+                table.insert(added, {name = name, mut = mut, count = 1})
             end
         end
     end
@@ -400,7 +461,7 @@ local function comparePetLists(oldPets, newPets)
         if count > newCount then
             local name, mut = key:match("([^|]+)|(.+)")
             for i = 1, count - newCount do
-                table.insert(removed, {name = name, mut = mut})
+                table.insert(removed, {name = name, mut = mut, count = 1})
             end
         end
     end
@@ -415,20 +476,38 @@ local function shouldSendToAPI(added, removed, timeSinceLastSend, timeSinceLastF
             timeSinceLastForce >= TIMING_CONFIG.forceUpdateInterval)
 end
 
--- Display changes
+-- Display changes with counts
 local function displayChanges(added, removed)
     if #added > 0 then
         print("New pets found:")
         for _, pet in ipairs(added) do
-            print("  + " .. pet.name .. " | " .. pet.mut)
+            local countText = pet.count and pet.count > 1 and (" x" .. pet.count) or ""
+            print("  + " .. pet.name .. " | " .. pet.mut .. countText)
         end
     end
     
     if #removed > 0 then
         print("Pets removed:")
         for _, pet in ipairs(removed) do
-            print("  - " .. pet.name .. " | " .. pet.mut)
+            local countText = pet.count and pet.count > 1 and (" x" .. pet.count) or ""
+            print("  - " .. pet.name .. " | " .. pet.mut .. countText)
         end
+    end
+end
+
+-- Display current pet counts
+local function displayPetCounts(pets)
+    local petSummary = {}
+    
+    for _, pet in ipairs(pets) do
+        local key = pet.name .. " | " .. pet.mut
+        petSummary[key] = (petSummary[key] or 0) + (pet.count or 1)
+    end
+    
+    print("Current pets in plot:")
+    for petKey, count in pairs(petSummary) do
+        local countText = count > 1 and (" x" .. count) or ""
+        print("  " .. petKey .. countText)
     end
 end
 
@@ -446,6 +525,9 @@ local function startPetMonitor(plot)
     print("Found " .. #lastFoundPets .. " pets")
     print("Monitoring " .. #allowedPets .. " pet types")
     print("Auto-update enabled (checks every " .. UPDATE_CONFIG.checkInterval .. "s)")
+    
+    -- Display initial pet counts
+    displayPetCounts(lastFoundPets)
     
     if API_CONFIG.enabled and isAuthenticated then
         sendDataToAPI(LocalPlayer.Name, lastFoundPets)
@@ -495,6 +577,7 @@ local function startPetMonitor(plot)
             
             if #added > 0 or #removed > 0 then
                 displayChanges(added, removed)
+                displayPetCounts(newPets) -- Show updated counts
             end
             
             local timeSinceLastSend = currentTime - lastApiSendTime
@@ -538,6 +621,3 @@ if not myPlot then
 end
 
 startPetMonitor(myPlot)
-
--- Remove this line as it's not needed
--- getgenv().CURRENT_SCRIPT_SIZE = #tostring(debug.getinfo(1).source)

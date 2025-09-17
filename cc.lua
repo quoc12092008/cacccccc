@@ -75,7 +75,13 @@ local allowedPets = {
     "Extinct Matteo",
     "Chachechi",
     "Admin Lucky Block",
-    "Taco Lucky Block"
+    "Taco Lucky Block",
+    "Quesadilla Crocodila",
+    "Los Nooo My Hotspotsitos",
+    "Blackhole Goat",
+    "Los Spyderinis",
+    "Guerriro Digitale",
+    "67"
 }
 
 local allowedPetSet = {}

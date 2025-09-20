@@ -81,7 +81,9 @@ local allowedPets = {
     "Blackhole Goat",
     "Los Spyderinis",
     "Guerriro Digitale",
-    "67"
+    "67",
+    "To to to Sahur",
+    "La Cucaracha"
 }
 
 local allowedPetSet = {}

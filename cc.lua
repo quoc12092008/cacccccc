@@ -1,8 +1,9 @@
--- VERSION: 1.1
+-- VERSION: 1.2
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 local http = syn and syn.request or http_request or request
@@ -16,8 +17,8 @@ end
 -- Script update configuration
 local UPDATE_CONFIG = {
     scriptUrl = "https://raw.githubusercontent.com/quoc12092008/cacccccc/refs/heads/main/cc.lua",
-    checkInterval = 10, -- Check for updates every 60 seconds
-    versionEndpoint = "https://raw.githubusercontent.com/quoc12092008/cacccccc/refs/heads/main/version.txt" -- Optional version file
+    checkInterval = 10,
+    versionEndpoint = "https://raw.githubusercontent.com/quoc12092008/cacccccc/refs/heads/main/version.txt"
 }
 
 -- Global script control
@@ -26,7 +27,7 @@ if not getgenv().PET_TRACKER_RUNNING then
 end
 
 -- Set current version from script
-local currentVersion = "1.1"
+local currentVersion = "1.2"
 getgenv().PET_TRACKER_VERSION = currentVersion
 
 -- Stop any existing instance
@@ -46,7 +47,8 @@ local API_CONFIG = {
 local TIMING_CONFIG = {
     petCheckInterval = 30,
     apiSendInterval = 120,
-    forceUpdateInterval = 480
+    forceUpdateInterval = 480,
+    luckyBlockCheckInterval = 5  -- Check for lucky blocks every 5 seconds
 }
 
 local allowedPets = {
@@ -68,7 +70,7 @@ local allowedPets = {
     "Lucky Block Secret",
     "Ketchuru and Musturu",
     "Ketupat Kepat",
-     "Guerirro Digitale",
+    "Guerirro Digitale",
     "Nucclearo Dinossauro",
     "Nooo My Hotspot",
     "Extinct Tralalero",
@@ -97,11 +99,95 @@ local isAuthenticated = false
 local userInfo = nil
 local recheckConnection = nil
 local updateCheckConnection = nil
+local luckyBlockConnection = nil
 local lastFoundPets = {}
 local lastPetCheckTime = 0
 local lastApiSendTime = 0
 local lastForceUpdateTime = 0
 local lastUpdateCheckTime = 0
+local lastLuckyBlockCheckTime = 0
+
+-- Lucky Block Configuration
+local LUCKY_BLOCKS = {
+    "Taco Lucky Block",
+    "Admin Lucky Block"
+}
+
+-- Get PlotController safely
+local function getPlotController()
+    local success, controller = pcall(function()
+        return require(ReplicatedStorage.Controllers.PlotController)
+    end)
+    if success then
+        return controller
+    end
+    return nil
+end
+
+-- Get animal list from plot
+local function getAnimalList()
+    local controller = getPlotController()
+    if not controller then return nil end
+    
+    local success, animalList = pcall(function()
+        local myPlot = controller.GetMyPlot()
+        if myPlot and myPlot.Channel then
+            return myPlot.Channel:Get("AnimalList")
+        end
+        return nil
+    end)
+    
+    if success then
+        return animalList
+    end
+    return nil
+end
+
+-- Detect lucky block in animal list
+local function detectLuckyBlock()
+    local animalList = getAnimalList()
+    if not animalList then return nil end
+    
+    for index, animal in pairs(animalList) do
+        if animal and animal.Index then
+            for _, luckyBlockName in ipairs(LUCKY_BLOCKS) do
+                if animal.Index == luckyBlockName then
+                    return index
+                end
+            end
+        end
+    end
+    
+    return nil
+end
+
+-- Open lucky block
+local function openLuckyBlock(luckyIndex)
+    if not luckyIndex then return false end
+    
+    local success, result = pcall(function()
+        local openEvent = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RE/PlotService/Open")
+        openEvent:FireServer(luckyIndex)
+        return true
+    end)
+    
+    if success then
+        print("✨ Opened lucky block at index: " .. tostring(luckyIndex))
+        return true
+    else
+        warn("Failed to open lucky block: " .. tostring(result))
+        return false
+    end
+end
+
+-- Check and open lucky blocks
+local function checkAndOpenLuckyBlocks()
+    local luckyIndex = detectLuckyBlock()
+    if luckyIndex then
+        print("🎁 Lucky block detected!")
+        openLuckyBlock(luckyIndex)
+    end
+end
 
 -- Stop function for cleanup
 local function stopScript()
@@ -116,6 +202,11 @@ local function stopScript()
     if updateCheckConnection then
         updateCheckConnection:Disconnect()
         updateCheckConnection = nil
+    end
+    
+    if luckyBlockConnection then
+        luckyBlockConnection:Disconnect()
+        luckyBlockConnection = nil
     end
     
     print("Pet Tracker stopped")
@@ -172,7 +263,6 @@ local function reloadScript()
     
     if not success then
         warn("Failed to reload script: " .. tostring(result))
-        -- Try to restart current instance
         getgenv().PET_TRACKER_RUNNING = true
     end
 end
@@ -234,14 +324,13 @@ local function sendDataToAPI(accountName, pets)
         local success, result = pcall(function()
             local url = API_CONFIG.baseUrl .. "/api/accounts/" .. HttpService:UrlEncode(accountName)
             
-            -- Format pets with required fields
             local formattedPets = {}
             for _, pet in ipairs(pets) do
                 if allowedPetSet[pet.name:lower()] then
                     table.insert(formattedPets, {
                         name = pet.name,
                         mut = pet.mut,
-                        count = pet.count or 1, -- Add count field
+                        count = pet.count or 1,
                         id = pet.name .. "_" .. pet.mut .. "_" .. os.time() .. "_" .. math.random(100000, 999999),
                         addedAt = os.date("!%Y-%m-%dT%H:%M:%SZ")
                     })
@@ -311,9 +400,8 @@ local function sendDataToAPI(accountName, pets)
     return false
 end
 
--- Enhanced find player's plot (combining both methods)
+-- Enhanced find player's plot
 local function findMyPlot()
-    -- Method 1: Check Owner tag
     for _, plot in ipairs(Workspace.Plots:GetChildren()) do
         local ownerTag = plot:FindFirstChild("Owner")
         if ownerTag and ownerTag.Value == LocalPlayer then
@@ -321,7 +409,6 @@ local function findMyPlot()
         end
     end
     
-    -- Method 2: Check plot sign text
     for _, plot in ipairs(Workspace.Plots:GetChildren()) do
         local sign = plot:FindFirstChild("PlotSign")
         local label = sign and sign:FindFirstChild("SurfaceGui") and sign.SurfaceGui.Frame:FindFirstChild("TextLabel")
@@ -336,18 +423,16 @@ local function findMyPlot()
     return nil
 end
 
--- Enhanced pet counting with multiple detection methods
+-- Enhanced pet counting
 local function countPetsDirectly(plot)
     local counts = {}
     
-    -- Initialize counts for all allowed pets
     for _, petName in ipairs(allowedPets) do
         counts[petName] = 0
     end
     
     if not plot then return counts end
     
-    -- Method 1: Direct children counting (from your logic)
     for _, child in ipairs(plot:GetChildren()) do
         if allowedPetSet[child.Name:lower()] then
             counts[child.Name] = (counts[child.Name] or 0) + 1
@@ -357,7 +442,7 @@ local function countPetsDirectly(plot)
     return counts
 end
 
--- Get pet data from spawn (original method)
+-- Get pet data from spawn
 local function getPetDataFromSpawn(spawn)
     if not spawn then return nil end
 
@@ -385,25 +470,23 @@ local function getPetDataFromSpawn(spawn)
     return {name = name, mut = mut}
 end
 
--- Get all allowed pets in plot (enhanced with counting)
+-- Get all allowed pets in plot
 local function getAllowedPetsInPlot(plot)
     local pets = {}
-    local petCounts = countPetsDirectly(plot) -- Use direct counting method
+    local petCounts = countPetsDirectly(plot)
     
-    -- Add pets from direct counting
     for petName, count in pairs(petCounts) do
         if count > 0 and allowedPetSet[petName:lower()] then
             for i = 1, count do
                 table.insert(pets, {
                     name = petName,
-                    mut = "Normal", -- Default mutation
+                    mut = "Normal",
                     count = 1
                 })
             end
         end
     end
     
-    -- Also check podiums method for additional data
     local podFolder = plot and plot:FindFirstChild("AnimalPodiums")
     if podFolder then
         for _, podium in ipairs(podFolder:GetChildren()) do
@@ -413,7 +496,6 @@ local function getAllowedPetsInPlot(plot)
                     local spawn = base:FindFirstChild("Spawn")
                     local data = getPetDataFromSpawn(spawn)
                     if data and allowedPetSet[data.name:lower()] then
-                        -- Check if this pet is already counted by direct method
                         local alreadyCounted = false
                         for _, existingPet in ipairs(pets) do
                             if existingPet.name == data.name and existingPet.mut == data.mut then
@@ -527,6 +609,7 @@ local function startPetMonitor(plot)
     lastApiSendTime = tick()
     lastForceUpdateTime = tick()
     lastUpdateCheckTime = tick()
+    lastLuckyBlockCheckTime = tick()
     
     lastFoundPets = getAllowedPetsInPlot(plot)
     
@@ -535,8 +618,8 @@ local function startPetMonitor(plot)
     print("Found " .. #lastFoundPets .. " pets")
     print("Monitoring " .. #allowedPets .. " pet types")
     print("Auto-update enabled (checks every " .. UPDATE_CONFIG.checkInterval .. "s)")
+    print("Lucky Block auto-open enabled ✨")
     
-    -- Display initial pet counts
     displayPetCounts(lastFoundPets)
     
     if API_CONFIG.enabled and isAuthenticated then
@@ -545,11 +628,12 @@ local function startPetMonitor(plot)
         lastForceUpdateTime = tick()
     end
     
-    -- Mark as running
     getgenv().PET_TRACKER_RUNNING = true
     
+    -- Check for lucky blocks immediately on start
+    task.spawn(checkAndOpenLuckyBlocks)
+    
     recheckConnection = RunService.Heartbeat:Connect(function()
-        -- Check if should stop
         if not getgenv().PET_TRACKER_RUNNING then
             print("Script stop signal received")
             stopScript()
@@ -557,6 +641,12 @@ local function startPetMonitor(plot)
         end
         
         local currentTime = tick()
+        
+        -- Check for lucky blocks
+        if currentTime - lastLuckyBlockCheckTime >= TIMING_CONFIG.luckyBlockCheckInterval then
+            lastLuckyBlockCheckTime = currentTime
+            task.spawn(checkAndOpenLuckyBlocks)
+        end
         
         -- Check for updates
         if currentTime - lastUpdateCheckTime >= UPDATE_CONFIG.checkInterval then
@@ -587,7 +677,7 @@ local function startPetMonitor(plot)
             
             if #added > 0 or #removed > 0 then
                 displayChanges(added, removed)
-                displayPetCounts(newPets) -- Show updated counts
+                displayPetCounts(newPets)
             end
             
             local timeSinceLastSend = currentTime - lastApiSendTime

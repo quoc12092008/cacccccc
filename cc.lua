@@ -1,4 +1,4 @@
--- VERSION: 1.4
+-- VERSION: 1.5
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -27,7 +27,7 @@ if not getgenv().PET_TRACKER_RUNNING then
 end
 
 -- Set current version from script
-local currentVersion = "1.4"
+local currentVersion = "1.5"
 getgenv().PET_TRACKER_VERSION = currentVersion
 
 -- Stop any existing instance
@@ -88,7 +88,8 @@ local allowedPets = {
     "La Cucaracha",
     "Tang Tang Keletang",
     "Money Money Puggy",
-    "Perrito Burrito"
+    "Perrito Burrito",
+    "Pot Hotspot"
 }
 
 local allowedPetSet = {}
@@ -110,6 +111,7 @@ local lastLuckyBlockCheckTime = 0
 
 -- Lucky Block Configuration
 local LUCKY_BLOCKS = {
+    "Taco Lucky Block",
 }
 
 -- Get PlotController safely

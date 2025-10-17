@@ -1,4 +1,4 @@
--- VERSION: 1.8
+-- VERSION: 1.9
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -27,7 +27,7 @@ if not getgenv().PET_TRACKER_RUNNING then
 end
 
 -- Set current version from script
-local currentVersion = "1.8"
+local currentVersion = "1.9"
 getgenv().PET_TRACKER_VERSION = currentVersion
 
 -- Stop any existing instance
@@ -45,9 +45,9 @@ local API_CONFIG = {
 }
 
 local TIMING_CONFIG = {
-    petCheckInterval = 5,
-    apiSendInterval = 10,
-    forceUpdateInterval = 120,
+    petCheckInterval = 3,
+    apiSendInterval = 6,
+    forceUpdateInterval = 60,
     luckyBlockCheckInterval = 5  -- Check for lucky blocks every 5 seconds
 }
 

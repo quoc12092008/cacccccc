@@ -1,4 +1,4 @@
--- VERSION: 1.7
+-- VERSION: 1.8
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -27,7 +27,7 @@ if not getgenv().PET_TRACKER_RUNNING then
 end
 
 -- Set current version from script
-local currentVersion = "1.7"
+local currentVersion = "1.8"
 getgenv().PET_TRACKER_VERSION = currentVersion
 
 -- Stop any existing instance
@@ -45,9 +45,9 @@ local API_CONFIG = {
 }
 
 local TIMING_CONFIG = {
-    petCheckInterval = 30,
-    apiSendInterval = 120,
-    forceUpdateInterval = 480,
+    petCheckInterval = 5,
+    apiSendInterval = 10,
+    forceUpdateInterval = 120,
     luckyBlockCheckInterval = 5  -- Check for lucky blocks every 5 seconds
 }
 
@@ -93,7 +93,11 @@ local allowedPets = {
     "Frankentteo",
     "Zombie Tralala",
     "La Vacca Jacko Linterino",
-    "Los Lucky Blocks"
+    "Los Lucky Blocks",
+    "Los Tortus",
+    "Los Jobcitos",
+    "Los Combinasionas",
+    "Los 67"
 }
 
 local allowedPetSet = {}

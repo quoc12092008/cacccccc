@@ -1,4 +1,4 @@
--- VERSION: 2.0
+-- VERSION: 2.1
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -27,7 +27,7 @@ if not getgenv().PET_TRACKER_RUNNING then
 end
 
 -- Set current version from script
-local currentVersion = "2.0"
+local currentVersion = "2.1"
 getgenv().PET_TRACKER_VERSION = currentVersion
 
 -- Stop any existing instance
@@ -97,7 +97,8 @@ local allowedPets = {
     "Los Tortus",
     "Los Jobcitos",
     "Los Combinasionas",
-    "Los 67"
+    "Los 67",
+    "Horegini Boom"
 }
 
 local allowedPetSet = {}

@@ -99,7 +99,7 @@ local allowedPets = {
     "Los Combinasionas",
     "Los 67",
     "Horegini Boom",
-    "Torrtuginni Dragonfrutini"
+    "Torrtuginni Dragonfrutini",
     "Pot Hotspot",
     "Esok Sekolah",
     "Spaghetti Tualetti",

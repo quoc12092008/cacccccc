@@ -105,7 +105,11 @@ local allowedPets = {
     "Spaghetti Tualetti",
     "La Secret Combinasion",
     "Pumpkini Spiderini",
-    "Spooky Lucky Block"
+    "Spooky Lucky Block".
+    "Telemorte",
+    "Los Spooky",
+    "Combinasionas",
+    "La Casa Boo"
 }
 
 local allowedPetSet = {}

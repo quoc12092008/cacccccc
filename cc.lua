@@ -1,4 +1,4 @@
--- VERSION: 2.6
+-- VERSION: 2.7
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -27,7 +27,7 @@ if not getgenv().PET_TRACKER_RUNNING then
 end
 
 -- Set current version from script
-local currentVersion = "2.6"
+local currentVersion = "2.7"
 getgenv().PET_TRACKER_VERSION = currentVersion
 
 -- Stop any existing instance

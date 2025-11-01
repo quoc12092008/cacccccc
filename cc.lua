@@ -51,72 +51,154 @@ local TIMING_CONFIG = {
     luckyBlockCheckInterval = 5
 }
 
-local allowedPets = {
-    "La Vacca Saturno Saturnita", 
-    "Chimpanzini Spiderini", 
-    "Karkerkar Kurkur",
-    "Los Tralaleritos", 
-    "Las Tralaleritas",
-    "Graipuss Medussi",
-    "La Grande Combinasion", 
-    "Chicleteira Bicicleteira", 
-    "Garama and Madundung",
-    "Job Job Job Sahur",
-    "Secret Lucky Block",
-    "Lucky Block",
-    "Sammyni Spyderini",
-    "Dul Dul Dul",
-    "Blsonte Gluppltere",
-    "Lucky Block Secret",
-    "Ketchuru and Musturu",
-    "Ketupat Kepat",
-    "Guerirro Digitale",
-    "Nucclearo Dinossauro",
-    "Nooo My Hotspot",
-    "Extinct Tralalero",
-    "Extinct Matteo",
-    "Chachechi",
-    "Admin Lucky Block",
-    "Taco Lucky Block",
-    "Quesadilla Crocodila",
-    "Los Nooo My Hotspotsitos",
-    "Blackhole Goat",
-    "Los Spyderinis",
-    "Guerriro Digitale",
-    "67",
-    "To to to Sahur",
-    "La Cucaracha",
-    "Tang Tang Keletang",
-    "Money Money Puggy",
-    "Perrito Burrito",
-    "Pot Hotspot",
-    "Frankentteo",
-    "Zombie Tralala",
-    "La Vacca Jacko Linterino",
-    "Los Lucky Blocks",
-    "Los Tortus",
-    "Los Jobcitos",
-    "Los Combinasionas",
-    "Los 67",
-    "Horegini Boom",
-    "Torrtuginni Dragonfrutini",
-    "Pot Hotspot",
-    "Esok Sekolah",
-    "Spaghetti Tualetti",
-    "La Secret Combinasion",
-    "Pumpkini Spiderini",
-    "Spooky Lucky Block",
-    "Telemorte",
-    "Los Spooky",
-    "Combinasionas",
-    "La Casa Boo",
-    "Pot Pumpkin"
+-- ===== GITHUB PETS CONFIGURATION =====
+
+-- GitHub configuration - GIỐNG như server
+local GITHUB_CONFIG = {
+    owner = "quoc12092008",      -- THAY TÊN GITHUB CỦA BẠN
+    repo = "cacccccc",            -- THAY TÊN REPO CỦA BẠN
+    branch = "main",
+    path = "allowed-pets.json"
 }
 
+local allowedPets = {}
 local allowedPetSet = {}
-for _, petName in ipairs(allowedPets) do
-    allowedPetSet[petName:lower()] = true
+local lastPetsFetch = 0
+local PETS_CACHE_TTL = 5 * 60 -- Cache 5 phút
+
+-- Hàm fetch pets từ GitHub
+local function fetchPetsFromGitHub()
+    if not http then return false end
+    
+    local success, result = pcall(function()
+        local url = string.format(
+            "https://raw.githubusercontent.com/%s/%s/%s/%s",
+            GITHUB_CONFIG.owner,
+            GITHUB_CONFIG.repo,
+            GITHUB_CONFIG.branch,
+            GITHUB_CONFIG.path
+        )
+        
+        print("📥 Fetching pets from GitHub...")
+        
+        local response = http({
+            Url = url,
+            Method = "GET",
+            Headers = {
+                ["Cache-Control"] = "no-cache"
+            }
+        })
+        
+        if response.Success then
+            local pets = HttpService:JSONDecode(response.Body)
+            if type(pets) == "table" and #pets > 0 then
+                allowedPets = pets
+                allowedPetSet = {}
+                for _, petName in ipairs(allowedPets) do
+                    allowedPetSet[petName:lower()] = true
+                end
+                lastPetsFetch = tick()
+                print("✅ Loaded " .. #allowedPets .. " pets from GitHub")
+                return true
+            else
+                print("⚠️  Empty pets list from GitHub")
+                return false
+            end
+        else
+            print("❌ GitHub fetch failed: HTTP " .. (response.StatusCode or "Unknown"))
+            return false
+        end
+    end)
+    
+    if not success then
+        print("❌ Error fetching pets: " .. tostring(result))
+        return false
+    end
 end
+
+-- Hàm get pets với cache
+local function getPets()
+    local now = tick()
+    
+    -- Nếu cache còn fresh thì dùng cache
+    if #allowedPets > 0 and (now - lastPetsFetch < PETS_CACHE_TTL) then
+        return true
+    end
+    
+    -- Fetch từ GitHub
+    if fetchPetsFromGitHub() then
+        return true
+    else
+        -- Fallback - dùng pets mặc định nếu GitHub fail
+        print("⚠️  Using fallback pets list")
+        allowedPets = {
+            "La Vacca Saturno Saturnita", 
+            "Chimpanzini Spiderini", 
+            "Karkerkar Kurkur",
+            "Los Tralaleritos", 
+            "Las Tralaleritas",
+            "Graipuss Medussi",
+            "La Grande Combinasion", 
+            "Chicleteira Bicicleteira", 
+            "Garama and Madundung",
+            "Job Job Job Sahur",
+            "Secret Lucky Block",
+            "Lucky Block",
+            "Sammyni Spyderini",
+            "Dul Dul Dul",
+            "Blsonte Gluppltere",
+            "Ketchuru and Musturu",
+            "Ketupat Kepat",
+            "Guerirro Digitale",
+            "Nucclearo Dinossauro",
+            "Nooo My Hotspot",
+            "Extinct Tralalero",
+            "Extinct Matteo",
+            "Chachechi",
+            "Admin Lucky Block",
+            "Taco Lucky Block",
+            "Quesadilla Crocodila",
+            "Los Nooo My Hotspotsitos",
+            "Blackhole Goat",
+            "Los Spyderinis",
+            "Guerriro Digitale",
+            "67",
+            "To to to Sahur",
+            "La Cucaracha",
+            "Tang Tang Keletang",
+            "Money Money Puggy",
+            "Perrito Burrito",
+            "Pot Hotspot",
+            "Frankentteo",
+            "Zombie Tralala",
+            "La Vacca Jacko Linterino",
+            "Los Lucky Blocks",
+            "Los Tortus",
+            "Los Jobcitos",
+            "Los Combinasionas",
+            "Los 67",
+            "Horegini Boom",
+            "Torrtuginni Dragonfrutini",
+            "Esok Sekolah",
+            "Spaghetti Tualetti",
+            "La Secret Combinasion",
+            "Pumpkini Spiderini",
+            "Spooky Lucky Block",
+            "Telemorte",
+            "Los Spooky",
+            "Combinasionas",
+            "La Casa Boo",
+            "Pot Pumpkin"
+        }
+        allowedPetSet = {}
+        for _, petName in ipairs(allowedPets) do
+            allowedPetSet[petName:lower()] = true
+        end
+        return false
+    end
+end
+
+-- ===== GLOBAL VARIABLES =====
 
 local isAuthenticated = false
 local userInfo = nil
@@ -455,7 +537,7 @@ local function sendDataToAPI(accountName, pets)
     return false
 end
 
--- NEW: Get allowed pets from Synchronizer AnimalPodiums
+-- Get allowed pets from Synchronizer AnimalPodiums
 local function getAllowedPetsFromSynchronizer()
     local pets = {}
     local animalList = getAnimalListViaSynchronizer()
@@ -559,8 +641,12 @@ local function displayPetCounts(pets)
     end
 end
 
--- Main monitor function
+-- ===== MAIN MONITOR FUNCTION =====
+
 local function startPetMonitor()
+    -- Load pets từ GitHub TRƯỚC KHI DÙNG
+    getPets()
+    
     lastPetCheckTime = tick()
     lastApiSendTime = tick()
     lastForceUpdateTime = tick()
@@ -649,6 +735,8 @@ local function startPetMonitor()
         end
     end)
 end
+
+-- ===== STARTUP SEQUENCE =====
 
 -- Stop old monitor if exists
 if recheckConnection then

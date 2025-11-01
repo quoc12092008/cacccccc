@@ -1,4 +1,4 @@
--- VERSION: 2.3
+-- VERSION: 2.4
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -27,7 +27,7 @@ if not getgenv().PET_TRACKER_RUNNING then
 end
 
 -- Set current version from script
-local currentVersion = "2.3"
+local currentVersion = "2.4"
 getgenv().PET_TRACKER_VERSION = currentVersion
 
 -- Stop any existing instance
@@ -48,7 +48,7 @@ local TIMING_CONFIG = {
     petCheckInterval = 30,
     apiSendInterval = 120,
     forceUpdateInterval = 180,
-    luckyBlockCheckInterval = 5  -- Check for lucky blocks every 5 seconds
+    luckyBlockCheckInterval = 5
 }
 
 local allowedPets = {
@@ -129,7 +129,41 @@ local lastLuckyBlockCheckTime = 0
 local LUCKY_BLOCKS = {
 }
 
--- Get PlotController safely
+-- Initialize Synchronizer
+local Synchronizer = nil
+local playerSync = nil
+
+local function initSynchronizer()
+    local success, result = pcall(function()
+        Synchronizer = require(ReplicatedStorage.Packages.Synchronizer)
+        playerSync = Synchronizer:Get(Players.LocalPlayer)
+        return true
+    end)
+    
+    if success and playerSync then
+        print("✓ Synchronizer initialized")
+        return true
+    else
+        warn("Failed to initialize Synchronizer: " .. tostring(result))
+        return false
+    end
+end
+
+-- Get animal list using Synchronizer
+local function getAnimalListViaSynchronizer()
+    if not playerSync then return nil end
+    
+    local success, animalList = pcall(function()
+        return playerSync:Get("AnimalPodiums")
+    end)
+    
+    if success and animalList then
+        return animalList
+    end
+    return nil
+end
+
+-- Get PlotController safely (fallback)
 local function getPlotController()
     local success, controller = pcall(function()
         return require(ReplicatedStorage.Controllers.PlotController)
@@ -140,8 +174,8 @@ local function getPlotController()
     return nil
 end
 
--- Get animal list from plot
-local function getAnimalList()
+-- Get animal list from plot (fallback method)
+local function getAnimalListViaPlot()
     local controller = getPlotController()
     if not controller then return nil end
     
@@ -161,7 +195,7 @@ end
 
 -- Detect lucky block in animal list
 local function detectLuckyBlock()
-    local animalList = getAnimalList()
+    local animalList = getAnimalListViaSynchronizer() or getAnimalListViaPlot()
     if not animalList then return nil end
     
     for index, animal in pairs(animalList) do
@@ -247,8 +281,6 @@ local function checkForUpdates()
         
         if response.Success then
             local newScript = response.Body
-            
-            -- Extract version from new script
             local newVersion = newScript:match("-- VERSION: ([%d%.]+)")
             if newVersion and newVersion ~= getgenv().PET_TRACKER_VERSION then
                 getgenv().PET_TRACKER_VERSION = newVersion
@@ -416,120 +448,21 @@ local function sendDataToAPI(accountName, pets)
     return false
 end
 
--- Enhanced find player's plot
-local function findMyPlot()
-    for _, plot in ipairs(Workspace.Plots:GetChildren()) do
-        local ownerTag = plot:FindFirstChild("Owner")
-        if ownerTag and ownerTag.Value == LocalPlayer then
-            return plot
-        end
-    end
-    
-    for _, plot in ipairs(Workspace.Plots:GetChildren()) do
-        local sign = plot:FindFirstChild("PlotSign")
-        local label = sign and sign:FindFirstChild("SurfaceGui") and sign.SurfaceGui.Frame:FindFirstChild("TextLabel")
-        if label then
-            local txt = label.Text:lower()
-            if txt:match(LocalPlayer.Name:lower()) or txt:match(LocalPlayer.DisplayName:lower()) then
-                return plot
-            end
-        end
-    end
-    
-    return nil
-end
-
--- Enhanced pet counting
-local function countPetsDirectly(plot)
-    local counts = {}
-    
-    for _, petName in ipairs(allowedPets) do
-        counts[petName] = 0
-    end
-    
-    if not plot then return counts end
-    
-    for _, child in ipairs(plot:GetChildren()) do
-        if allowedPetSet[child.Name:lower()] then
-            counts[child.Name] = (counts[child.Name] or 0) + 1
-        end
-    end
-    
-    return counts
-end
-
--- Get pet data from spawn
-local function getPetDataFromSpawn(spawn)
-    if not spawn then return nil end
-
-    local attach = spawn:FindFirstChild("Attachment")
-    if not attach then return nil end
-    
-    local overhead = attach:FindFirstChild("AnimalOverhead")
-    if not overhead then return nil end
-    
-    local lbl = overhead:FindFirstChild("DisplayName")
-    if not lbl then return nil end
-    
-    local name = lbl.Text
-    if not name or name == "" then return nil end
-
-    local mut = "Normal"
-    local petObj = Workspace:FindFirstChild(name)
-    if petObj then
-        local attrMut = petObj:GetAttribute("Mutation")
-        if attrMut and attrMut ~= "" then
-            mut = attrMut
-        end
-    end
-
-    return {name = name, mut = mut}
-end
-
--- Get all allowed pets in plot
-local function getAllowedPetsInPlot(plot)
+-- NEW: Get allowed pets from Synchronizer AnimalPodiums
+local function getAllowedPetsFromSynchronizer()
     local pets = {}
-    local petCounts = countPetsDirectly(plot)
+    local animalList = getAnimalListViaSynchronizer()
     
-    for petName, count in pairs(petCounts) do
-        if count > 0 and allowedPetSet[petName:lower()] then
-            for i = 1, count do
-                table.insert(pets, {
-                    name = petName,
-                    mut = "Normal",
-                    count = 1
-                })
-            end
-        end
-    end
+    if not animalList then return pets end
     
-    local podFolder = plot and plot:FindFirstChild("AnimalPodiums")
-    if podFolder then
-        for _, podium in ipairs(podFolder:GetChildren()) do
-            if podium:IsA("Model") then
-                local base = podium:FindFirstChild("Base")
-                if base then
-                    local spawn = base:FindFirstChild("Spawn")
-                    local data = getPetDataFromSpawn(spawn)
-                    if data and allowedPetSet[data.name:lower()] then
-                        local alreadyCounted = false
-                        for _, existingPet in ipairs(pets) do
-                            if existingPet.name == data.name and existingPet.mut == data.mut then
-                                alreadyCounted = true
-                                break
-                            end
-                        end
-                        
-                        if not alreadyCounted then
-                            table.insert(pets, {
-                                name = data.name,
-                                mut = data.mut,
-                                count = 1
-                            })
-                        end
-                    end
-                end
-            end
+    for index, animal in pairs(animalList) do
+        if animal and animal.Index and allowedPetSet[animal.Index:lower()] then
+            table.insert(pets, {
+                name = animal.Index,
+                mut = animal.Mutation or "Normal",
+                count = 1,
+                lastCollect = animal.LastCollect or nil
+            })
         end
     end
     
@@ -620,14 +553,14 @@ local function displayPetCounts(pets)
 end
 
 -- Main monitor function
-local function startPetMonitor(plot)
+local function startPetMonitor()
     lastPetCheckTime = tick()
     lastApiSendTime = tick()
     lastForceUpdateTime = tick()
     lastUpdateCheckTime = tick()
     lastLuckyBlockCheckTime = tick()
     
-    lastFoundPets = getAllowedPetsInPlot(plot)
+    lastFoundPets = getAllowedPetsFromSynchronizer()
     
     print("Pet Monitor started for: " .. LocalPlayer.Name)
     print("Version: " .. currentVersion)
@@ -682,13 +615,7 @@ local function startPetMonitor(plot)
         if currentTime - lastPetCheckTime >= TIMING_CONFIG.petCheckInterval then
             lastPetCheckTime = currentTime
             
-            if not plot.Parent then
-                print("Plot no longer exists. Stopping monitor.")
-                stopScript()
-                return
-            end
-            
-            local newPets = getAllowedPetsInPlot(plot)
+            local newPets = getAllowedPetsFromSynchronizer()
             local added, removed = comparePetLists(lastFoundPets, newPets)
             
             if #added > 0 or #removed > 0 then
@@ -729,11 +656,11 @@ if not validateKey() then
     return
 end
 
--- Find plot and start monitoring
-local myPlot = findMyPlot()
-if not myPlot then
-    error("Cannot find your plot! Make sure you're in the game.")
-    return
+-- Initialize Synchronizer
+print("Initializing Synchronizer...")
+if not initSynchronizer() then
+    warn("Failed to initialize Synchronizer. Script will attempt to use fallback methods.")
 end
 
-startPetMonitor(myPlot)
+-- Start monitoring with new logic
+startPetMonitor()

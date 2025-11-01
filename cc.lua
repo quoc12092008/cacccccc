@@ -109,7 +109,8 @@ local allowedPets = {
     "Telemorte",
     "Los Spooky",
     "Combinasionas",
-    "La Casa Boo"
+    "La Casa Boo",
+    "Pot Pumpkin"
 }
 
 local allowedPetSet = {}

@@ -127,7 +127,6 @@ local lastLuckyBlockCheckTime = 0
 
 -- Lucky Block Configuration
 local LUCKY_BLOCKS = {
-    "Taco Lucky Block",
 }
 
 -- Get PlotController safely

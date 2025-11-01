@@ -64,7 +64,7 @@ local GITHUB_CONFIG = {
 local allowedPets = {}
 local allowedPetSet = {}
 local lastPetsFetch = 0
-local PETS_CACHE_TTL = 5 * 60 -- Cache 5 phút
+local PETS_CACHE_TTL = 3 * 60 -- Cache 5 phút
 
 -- Hàm fetch pets từ GitHub
 local function fetchPetsFromGitHub()

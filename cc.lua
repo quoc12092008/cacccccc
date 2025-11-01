@@ -1,4 +1,4 @@
--- VERSION: 2.4
+-- VERSION: 2.5
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -27,7 +27,7 @@ if not getgenv().PET_TRACKER_RUNNING then
 end
 
 -- Set current version from script
-local currentVersion = "2.4"
+local currentVersion = "2.5"
 getgenv().PET_TRACKER_VERSION = currentVersion
 
 -- Stop any existing instance
@@ -46,8 +46,8 @@ local API_CONFIG = {
 
 local TIMING_CONFIG = {
     petCheckInterval = 30,
-    apiSendInterval = 120,
-    forceUpdateInterval = 180,
+    apiSendInterval = 60,
+    forceUpdateInterval = 120,
     luckyBlockCheckInterval = 5
 }
 

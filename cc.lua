@@ -1,4 +1,4 @@
--- VERSION: 3.1
+-- VERSION: 3.2
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -27,7 +27,7 @@ if not getgenv().PET_TRACKER_RUNNING then
 end
 
 -- Set current version from script
-local currentVersion = "3.1"
+local currentVersion = "3.2"
 getgenv().PET_TRACKER_VERSION = currentVersion
 
 -- Stop any existing instance
@@ -53,10 +53,9 @@ local TIMING_CONFIG = {
 
 -- ===== GITHUB PETS CONFIGURATION =====
 
--- GitHub configuration - GIỐNG như server
 local GITHUB_CONFIG = {
-    owner = "quoc12092008",      -- THAY TÊN GITHUB CỦA BẠN
-    repo = "cacccccc",            -- THAY TÊN REPO CỦA BẠN
+    owner = "quoc12092008",
+    repo = "cacccccc",
     branch = "main",
     path = "allowed-pets.json"
 }
@@ -64,7 +63,7 @@ local GITHUB_CONFIG = {
 local allowedPets = {}
 local allowedPetSet = {}
 local lastPetsFetch = 0
-local PETS_CACHE_TTL = 3 * 60 -- Cache 5 phút
+local PETS_CACHE_TTL = 3 * 60
 
 -- Hàm fetch pets từ GitHub
 local function fetchPetsFromGitHub()
@@ -120,16 +119,13 @@ end
 local function getPets()
     local now = tick()
     
-    -- Nếu cache còn fresh thì dùng cache
     if #allowedPets > 0 and (now - lastPetsFetch < PETS_CACHE_TTL) then
         return true
     end
     
-    -- Fetch từ GitHub
     if fetchPetsFromGitHub() then
         return true
     else
-        -- Fallback - dùng pets mặc định nếu GitHub fail
         print("⚠️  Using fallback pets list")
         allowedPets = {
         "La Vacca Saturno Saturnita", 
@@ -284,6 +280,21 @@ local function getAnimalListViaPlot()
         return animalList
     end
     return nil
+end
+
+-- Format pet display name with mutation
+local function formatPetDisplayName(petName, traits, mutation)
+    local displayName = petName
+    
+    if mutation and mutation ~= "Normal" and mutation ~= "" then
+        displayName = displayName .. " | " .. mutation
+    end
+    
+    if traits and type(traits) == "table" and #traits > 0 then
+        displayName = displayName .. " (" .. table.concat(traits, ", ") .. ")"
+    end
+    
+    return displayName
 end
 
 -- Detect lucky block in animal list
@@ -470,11 +481,12 @@ local function sendDataToAPI(accountName, pets)
                 if allowedPetSet[pet.name:lower()] then
                     table.insert(formattedPets, {
                         name = pet.name,
-                        mut = pet.mut,
+                        mut = pet.mut or "Normal",
+                        traits = pet.traits or {},
                         count = pet.count or 1,
-                        id = pet.name .. "_" .. pet.mut .. "_" .. os.time() .. "_" .. math.random(100000, 999999),
-                        addedAt = os.date("!%Y-%m-%dT%H:%M:%SZ")
+                        displayName = formatPetDisplayName(pet.name, pet.traits, pet.mut),
                     })
+
                 end
             end
             
@@ -541,7 +553,7 @@ local function sendDataToAPI(accountName, pets)
     return false
 end
 
--- Get allowed pets from Synchronizer AnimalPodiums
+-- Get allowed pets from Synchronizer AnimalPodiums with mutation info
 local function getAllowedPetsFromSynchronizer()
     local pets = {}
     local animalList = getAnimalListViaSynchronizer()
@@ -550,11 +562,16 @@ local function getAllowedPetsFromSynchronizer()
     
     for index, animal in pairs(animalList) do
         if animal and animal.Index and allowedPetSet[animal.Index:lower()] then
+            local mutation = animal.Mutation or "Normal"
+            local traits = animal.Traits or {}
+            
             table.insert(pets, {
                 name = animal.Index,
-                mut = animal.Mutation or "Normal",
+                mut = mutation,
+                traits = traits,
                 count = 1,
-                lastCollect = animal.LastCollect or nil
+                lastCollect = animal.LastCollect or nil,
+                displayName = formatPetDisplayName(animal.Index, traits, mutation)
             })
         end
     end
@@ -585,7 +602,14 @@ local function comparePetLists(oldPets, newPets)
         if count > oldCount then
             local name, mut = key:match("([^|]+)|(.+)")
             for i = 1, count - oldCount do
-                table.insert(added, {name = name, mut = mut, count = 1})
+                local petObj = nil
+                for _, pet in ipairs(newPets) do
+                    if pet.name == name and pet.mut == mut then
+                        petObj = pet
+                        break
+                    end
+                end
+                table.insert(added, petObj or {name = name, mut = mut, count = 1, displayName = formatPetDisplayName(name, {}, mut)})
             end
         end
     end
@@ -595,7 +619,14 @@ local function comparePetLists(oldPets, newPets)
         if count > newCount then
             local name, mut = key:match("([^|]+)|(.+)")
             for i = 1, count - newCount do
-                table.insert(removed, {name = name, mut = mut, count = 1})
+                local petObj = nil
+                for _, pet in ipairs(oldPets) do
+                    if pet.name == name and pet.mut == mut then
+                        petObj = pet
+                        break
+                    end
+                end
+                table.insert(removed, petObj or {name = name, mut = mut, count = 1, displayName = formatPetDisplayName(name, {}, mut)})
             end
         end
     end
@@ -610,13 +641,13 @@ local function shouldSendToAPI(added, removed, timeSinceLastSend, timeSinceLastF
             timeSinceLastForce >= TIMING_CONFIG.forceUpdateInterval)
 end
 
--- Display changes with counts
+-- Display changes with mutation info
 local function displayChanges(added, removed)
     if #added > 0 then
         print("New pets found:")
         for _, pet in ipairs(added) do
             local countText = pet.count and pet.count > 1 and (" x" .. pet.count) or ""
-            print("  + " .. pet.name .. " | " .. pet.mut .. countText)
+            print("  + " .. pet.displayName .. countText)
         end
     end
     
@@ -624,17 +655,17 @@ local function displayChanges(added, removed)
         print("Pets removed:")
         for _, pet in ipairs(removed) do
             local countText = pet.count and pet.count > 1 and (" x" .. pet.count) or ""
-            print("  - " .. pet.name .. " | " .. pet.mut .. countText)
+            print("  - " .. pet.displayName .. countText)
         end
     end
 end
 
--- Display current pet counts
+-- Display current pet counts with mutation info
 local function displayPetCounts(pets)
     local petSummary = {}
     
     for _, pet in ipairs(pets) do
-        local key = pet.name .. " | " .. pet.mut
+        local key = pet.displayName
         petSummary[key] = (petSummary[key] or 0) + (pet.count or 1)
     end
     
@@ -648,7 +679,6 @@ end
 -- ===== MAIN MONITOR FUNCTION =====
 
 local function startPetMonitor()
-    -- Load pets từ GitHub TRƯỚC KHI DÙNG
     getPets()
     
     lastPetCheckTime = tick()
@@ -676,7 +706,6 @@ local function startPetMonitor()
     
     getgenv().PET_TRACKER_RUNNING = true
     
-    -- Check for lucky blocks immediately on start
     task.spawn(checkAndOpenLuckyBlocks)
     
     recheckConnection = RunService.Heartbeat:Connect(function()
@@ -688,13 +717,11 @@ local function startPetMonitor()
         
         local currentTime = tick()
         
-        -- Check for lucky blocks
         if currentTime - lastLuckyBlockCheckTime >= TIMING_CONFIG.luckyBlockCheckInterval then
             lastLuckyBlockCheckTime = currentTime
             task.spawn(checkAndOpenLuckyBlocks)
         end
         
-        -- Check for updates
         if currentTime - lastUpdateCheckTime >= UPDATE_CONFIG.checkInterval then
             lastUpdateCheckTime = currentTime
             
@@ -708,7 +735,6 @@ local function startPetMonitor()
             end
         end
         
-        -- Regular pet checking
         if currentTime - lastPetCheckTime >= TIMING_CONFIG.petCheckInterval then
             lastPetCheckTime = currentTime
             
@@ -742,24 +768,20 @@ end
 
 -- ===== STARTUP SEQUENCE =====
 
--- Stop old monitor if exists
 if recheckConnection then
     recheckConnection:Disconnect()
     print("Stopped old monitor")
 end
 
--- Validate key first
 print("Validating key...")
 if not validateKey() then
     error("Key validation failed! Check your key and try again.")
     return
 end
 
--- Initialize Synchronizer
 print("Initializing Synchronizer...")
 if not initSynchronizer() then
     warn("Failed to initialize Synchronizer. Script will attempt to use fallback methods.")
 end
 
--- Start monitoring with new logic
 startPetMonitor()

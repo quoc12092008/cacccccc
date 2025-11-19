@@ -1,9 +1,8 @@
--- VERSION: 3.3
+-- AUTO PET SCANNER VERSION: 4.0
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
 local http = syn and syn.request or http_request or request
@@ -14,21 +13,10 @@ if not getgenv().PET_TRACKER_KEY or getgenv().PET_TRACKER_KEY == "" then
     return
 end
 
--- Script update configuration
-local UPDATE_CONFIG = {
-    scriptUrl = "https://raw.githubusercontent.com/quoc12092008/cacccccc/refs/heads/main/cc.lua",
-    checkInterval = 10,
-    versionEndpoint = "https://raw.githubusercontent.com/quoc12092008/cacccccc/refs/heads/main/version.txt"
-}
-
 -- Global script control
 if not getgenv().PET_TRACKER_RUNNING then
     getgenv().PET_TRACKER_RUNNING = false
 end
-
--- Set current version from script
-local currentVersion = "3.3"
-getgenv().PET_TRACKER_VERSION = currentVersion
 
 -- Stop any existing instance
 if getgenv().PET_TRACKER_STOP then
@@ -48,211 +36,94 @@ local TIMING_CONFIG = {
     petCheckInterval = 30,
     apiSendInterval = 60,
     forceUpdateInterval = 120,
-    luckyBlockCheckInterval = 5
+    luckyBlockCheckInterval = 5,
+    petListRefreshInterval = 5 * 60 -- 5 phút scan lại danh sách pet
 }
 
--- ===== GITHUB PETS CONFIGURATION =====
-
-local GITHUB_CONFIG = {
-    owner = "quoc12092008",
-    repo = "cacccccc",
-    branch = "main",
-    path = "allowed-pets.json"
-}
+-- ===== AUTO PET SCANNER =====
 
 local allowedPets = {}
 local allowedPetSet = {}
-local lastPetsFetch = 0
-local PETS_CACHE_TTL = 3 * 60
+local lastPetScanTime = 0
+local LUCKY_BLOCKS = {}
 
--- Hàm fetch pets từ GitHub
-local function fetchPetsFromGitHub()
-    if not http then return false end
-    
+-- Hàm scan pets từ game data
+local function scanPetsFromGame()
     local success, result = pcall(function()
-        local url = string.format(
-            "https://raw.githubusercontent.com/%s/%s/%s/%s",
-            GITHUB_CONFIG.owner,
-            GITHUB_CONFIG.repo,
-            GITHUB_CONFIG.branch,
-            GITHUB_CONFIG.path
-        )
+        local Animals = require(ReplicatedStorage.Datas.Animals)
         
-        print("📥 Fetching pets from GitHub...")
+        local secretPets = {}
+        local ogPets = {}
+        local luckyBlockPets = {}
         
-        local response = http({
-            Url = url,
-            Method = "GET",
-            Headers = {
-                ["Cache-Control"] = "no-cache"
-            }
-        })
-        
-        if response.Success then
-            local pets = HttpService:JSONDecode(response.Body)
-            if type(pets) == "table" and #pets > 0 then
-                allowedPets = pets
-                allowedPetSet = {}
-                for _, petName in ipairs(allowedPets) do
-                    allowedPetSet[petName:lower()] = true
-                end
-                lastPetsFetch = tick()
-                print("✅ Loaded " .. #allowedPets .. " pets from GitHub")
-                return true
-            else
-                print("⚠️  Empty pets list from GitHub")
-                return false
+        for name, data in pairs(Animals) do
+            local rarity = data.Rarity
+            
+            if rarity == "Secret" then
+                table.insert(secretPets, name)
+            elseif rarity == "OG" then
+                table.insert(ogPets, name)
+            elseif tostring(name):lower():find("lucky block") or tostring(rarity):lower():find("lucky") then
+                table.insert(luckyBlockPets, name)
             end
-        else
-            print("❌ GitHub fetch failed: HTTP " .. (response.StatusCode or "Unknown"))
-            return false
         end
+        
+        return {
+            secret = secretPets,
+            og = ogPets,
+            luckyBlocks = luckyBlockPets
+        }
     end)
     
-    if not success then
-        print("❌ Error fetching pets: " .. tostring(result))
-        return false
+    if success and result then
+        return result
+    else
+        warn("Failed to scan pets from game: " .. tostring(result))
+        return nil
     end
 end
 
--- Hàm get pets với cache
-local function getPets()
-    local now = tick()
+-- Hàm update allowed pets list
+local function updateAllowedPetsList()
+    local scannedPets = scanPetsFromGame()
     
-    if #allowedPets > 0 and (now - lastPetsFetch < PETS_CACHE_TTL) then
-        return true
-    end
-    
-    if fetchPetsFromGitHub() then
-        return true
-    else
-        print("⚠️  Using fallback pets list")
-        allowedPets = {
-        "1x1x1x1",
-        "67",
-        "Agarrini La Palini",
-        "Aquatic Index",
-        "Bicicleteira Family",
-        "Bisonte Giuppitere",
-        "Blackhole Goat",
-        "Boatito Auratito",
-        "Burguro and Fryuro",
-        "Burrito Bandito",
-        "Capitano Moby",
-        "Celularcini Viciosini",
-        "Chachechi",
-        "Chicleteira Bicicleteira",
-        "Chicleteirina Bicicleteirina",
-        "Chillin Chili",
-        "Chimpanzini Spiderini",
-        "Chipso and Queso",
-        "Combinasions",
-        "Cooki and Milki",
-        "Dragon Cannelloni",
-        "Dul Dul Dul",
-        "Duo Brainrots",
-        "Esok Sekolah",
-        "Eviledon",
-        "Extinct Matteo",
-        "Extinct Tralalero",
-        "Fragrama and Chocrama",
-        "Frankentteo",
-        "Garama and Madundung",
-        "Graipuss Medussi",
-        "Guest 666",
-        "Headless Horseman",
-        "Horegini Boom",
-        "Indonesian Event",
-        "Jackorilla",
-        "Job Job Job Sahur",
-        "Karker Sahur",
-        "Karkerkar Kurkur",
-        "Karkerkur Family",
-        "Ketchuru and Musturu",
-        "Ketupat Kepat",
-        "Zombie Tralala",
-        "Yess my examine",
-        "Vulturino Skeletono",
-        "Trickolino",
-        "Trenostruzzo Turbo 4000",
-        "Tralaledon",
-        "Torrtuginni Dragonfrutini",
-        "To to to Sahur",
-        "Tictac Sahur",
-        "Tang Tang Keletang",
-        "Tamaluk un Meass",
-        "Tacorita Bicicleta",
-        "Spooky Juggle",
-        "Spooky and Pumpky",
-        "Spaghetti Tualetti",
-        "Secret Lucky Block",
-        "Sammyni Spyderini",
-        "Rang Ring Bus",
-        "Quesadillo Vampiro",
-        "Quesadilla Crocodila",
-        "Pumpkini Spyderini",
-        "Pot Pumpkin",
-        "Pot Hotspot",
-        "Pirulitoita Bicicleteira",
-        "Perrito Burrito",
-        "Nuclearo Dinossauro",
-        "Nooo My Hotspot",
-        "Noo my examine",
-        "Noo my Candy",
-        "Money Money Puggy",
-        "Mieteteira Bicicleteira",
-        "Mariachi Corazoni",
-        "Lucky Blocks",
-        "Los Tralaleritos",
-        "Los Tortus",
-        "Los Tacoritas",
-        "Los Spyderinis",
-        "Los Spooky Combinasionas",
-        "Los Spaghettis",
-        "Los Primos",
-        "Los Nooo My Hotspotsitos",
-        "Los Mobilis",
-        "Los Matteos",
-        "Los Karkeritos",
-        "Los Jobcitos",
-        "Los Hotspotsitos",
-        "Los Combinasionas",
-        "Los Chicleteiras",
-        "Los Bros",
-        "Los 67",
-        "Las Vaquitas Saturnitas",
-        "Las Tralaleritas",
-        "Las Sis",
-        "La Vacca Saturno Saturnita",
-        "La Vacca Jacko Linterino",
-        "La Taco Combinasion",
-        "La Supreme Combinasion",
-        "La Spooky Grande",
-        "La Secret Combinasion",
-        "La Sahur Combinasion",
-        "La Karkerkar Combinasion",
-        "La Grande Combinasion",
-        "La Extinct Grande",
-        "La Cucaracha",
-        "La Casa Boo",
-        "Fragola La La La",
-        "Blsonte Gluppltere",
-        "Guerirro Digitale",
-        "Nucclearo Dinossauro",
-        "Admin Lucky Block",
-        "Taco Lucky Block",
-        "Telemorte",
-        "Los Spooky",
-        "Combinasionas",
-        "Tacorita Bicicleta",
-        "La Extinct Grande"
-        }
-        allowedPetSet = {}
-        for _, petName in ipairs(allowedPets) do
-            allowedPetSet[petName:lower()] = true
-        end
+    if not scannedPets then
+        print("⚠️  Pet scan failed, keeping old list")
         return false
     end
+    
+    -- Clear old lists
+    allowedPets = {}
+    allowedPetSet = {}
+    LUCKY_BLOCKS = {}
+    
+    -- Add Secret pets
+    for _, petName in ipairs(scannedPets.secret) do
+        table.insert(allowedPets, petName)
+        allowedPetSet[petName:lower()] = true
+    end
+    
+    -- Add OG pets
+    for _, petName in ipairs(scannedPets.og) do
+        table.insert(allowedPets, petName)
+        allowedPetSet[petName:lower()] = true
+    end
+    
+    -- Add Lucky Block pets
+    for _, petName in ipairs(scannedPets.luckyBlocks) do
+        table.insert(LUCKY_BLOCKS, petName)
+        allowedPetSet[petName:lower()] = true
+    end
+    
+    lastPetScanTime = tick()
+    
+    print("✅ Pet scan complete:")
+    print("  🟡 Secret: " .. #scannedPets.secret)
+    print("  🔵 OG: " .. #scannedPets.og)
+    print("  🟣 Lucky Blocks: " .. #scannedPets.luckyBlocks)
+    print("  📊 Total tracking: " .. #allowedPets .. " pets")
+    
+    return true
 end
 
 -- ===== GLOBAL VARIABLES =====
@@ -260,18 +131,13 @@ end
 local isAuthenticated = false
 local userInfo = nil
 local recheckConnection = nil
-local updateCheckConnection = nil
 local luckyBlockConnection = nil
+local petScanConnection = nil
 local lastFoundPets = {}
 local lastPetCheckTime = 0
 local lastApiSendTime = 0
 local lastForceUpdateTime = 0
-local lastUpdateCheckTime = 0
 local lastLuckyBlockCheckTime = 0
-
--- Lucky Block Configuration
-local LUCKY_BLOCKS = {
-}
 
 -- Initialize Synchronizer
 local Synchronizer = nil
@@ -408,14 +274,14 @@ local function stopScript()
         recheckConnection = nil
     end
     
-    if updateCheckConnection then
-        updateCheckConnection:Disconnect()
-        updateCheckConnection = nil
-    end
-    
     if luckyBlockConnection then
         luckyBlockConnection:Disconnect()
         luckyBlockConnection = nil
+    end
+    
+    if petScanConnection then
+        petScanConnection:Disconnect()
+        petScanConnection = nil
     end
     
     print("Pet Tracker stopped")
@@ -423,56 +289,6 @@ end
 
 -- Set global stop function
 getgenv().PET_TRACKER_STOP = stopScript
-
--- Check for script updates
-local function checkForUpdates()
-    if not http then return false end
-    
-    local success, result = pcall(function()
-        local response = http({
-            Url = UPDATE_CONFIG.scriptUrl,
-            Method = "GET",
-            Headers = {
-                ["Cache-Control"] = "no-cache",
-                ["Pragma"] = "no-cache"
-            }
-        })
-        
-        if response.Success then
-            local newScript = response.Body
-            local newVersion = newScript:match("-- VERSION: ([%d%.]+)")
-            if newVersion and newVersion ~= getgenv().PET_TRACKER_VERSION then
-                getgenv().PET_TRACKER_VERSION = newVersion
-                return true, newVersion
-            end
-        end
-        
-        return false
-    end)
-    
-    if success then
-        return result
-    else
-        warn("Update check failed: " .. tostring(result))
-        return false
-    end
-end
-
--- Reload script
-local function reloadScript()
-    print("🔄 Reloading script...")
-    stopScript()
-    task.wait(2)
-    
-    local success, result = pcall(function()
-        loadstring(game:HttpGet(UPDATE_CONFIG.scriptUrl))()
-    end)
-    
-    if not success then
-        warn("Failed to reload script: " .. tostring(result))
-        getgenv().PET_TRACKER_RUNNING = true
-    end
-end
 
 -- Validate key with server
 local function validateKey()
@@ -541,7 +357,6 @@ local function sendDataToAPI(accountName, pets)
                         count = pet.count or 1,
                         displayName = formatPetDisplayName(pet.name, pet.traits, pet.mut),
                     })
-
                 end
             end
             
@@ -734,22 +549,25 @@ end
 -- ===== MAIN MONITOR FUNCTION =====
 
 local function startPetMonitor()
-    getPets()
+    -- Initial pet scan
+    updateAllowedPetsList()
     
     lastPetCheckTime = tick()
     lastApiSendTime = tick()
     lastForceUpdateTime = tick()
-    lastUpdateCheckTime = tick()
     lastLuckyBlockCheckTime = tick()
     
     lastFoundPets = getAllowedPetsFromSynchronizer()
     
-    print("Pet Monitor started for: " .. LocalPlayer.Name)
-    print("Version: " .. currentVersion)
-    print("Found " .. #lastFoundPets .. " pets")
-    print("Monitoring " .. #allowedPets .. " pet types")
-    print("Auto-update enabled (checks every " .. UPDATE_CONFIG.checkInterval .. "s)")
-    print("Lucky Block auto-open enabled ✨")
+    print("╔════════════════════════════════════════════╗")
+    print("║   AUTO PET SCANNER & TRACKER v4.0         ║")
+    print("╠════════════════════════════════════════════╣")
+    print("║ Player: " .. LocalPlayer.Name)
+    print("║ Tracking: " .. #allowedPets .. " pets (auto-scanned)")
+    print("║ Found: " .. #lastFoundPets .. " pets in plot")
+    print("║ Auto-scan: Every 5 minutes")
+    print("║ Lucky Block: Auto-open enabled ✨")
+    print("╚════════════════════════════════════════════╝")
     
     displayPetCounts(lastFoundPets)
     
@@ -772,24 +590,19 @@ local function startPetMonitor()
         
         local currentTime = tick()
         
+        -- Auto-scan pets every 5 minutes
+        if currentTime - lastPetScanTime >= TIMING_CONFIG.petListRefreshInterval then
+            print("🔄 Auto-scanning pets from game...")
+            updateAllowedPetsList()
+        end
+        
+        -- Lucky block check
         if currentTime - lastLuckyBlockCheckTime >= TIMING_CONFIG.luckyBlockCheckInterval then
             lastLuckyBlockCheckTime = currentTime
             task.spawn(checkAndOpenLuckyBlocks)
         end
         
-        if currentTime - lastUpdateCheckTime >= UPDATE_CONFIG.checkInterval then
-            lastUpdateCheckTime = currentTime
-            
-            local hasUpdate, newVersion = checkForUpdates()
-            if hasUpdate then
-                print("🆕 Update detected! New version: " .. tostring(newVersion))
-                print("Reloading script in 3 seconds...")
-                task.wait(3)
-                reloadScript()
-                return
-            end
-        end
-        
+        -- Pet check
         if currentTime - lastPetCheckTime >= TIMING_CONFIG.petCheckInterval then
             lastPetCheckTime = currentTime
             

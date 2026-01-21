@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Tracker Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            --card-bg: rgba(20, 20, 23, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            background-color: #0a0a0a;
+            color: #e4e4e7;
+            min-height: 100vh;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+        /* Modern Card */
+
+        /* Thêm vào trong thẻ <style> */
+        .mobile-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        .glass-card {
+            background: #111111;
+            border: 1px solid #1f1f1f;
+            transition: all 0.2s ease;
+        }
+
+        .glass-card:hover {
+            border-color: #2a2a2a;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: #0d0d0d;
+            border-right: 1px solid #1a1a1a;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-item {
+            border-radius: 12px;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.03);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: #818cf8;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            right: -2px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 20px;
+            width: 4px;
+            background: #818cf8;
+            border-radius: 4px 0 0 4px;
+            box-shadow: 0 0 10px #818cf8;
+        }
+
+        /* Buttons */
+        .btn-modern {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+        
+        .btn-primary {
+            background: transparent;
+            border: 1px solid #3f3f46;
+            color: #e4e4e7;
+            font-size: 12px;
+            padding: 8px 14px;
+        }
+        .btn-primary:hover { 
+            background: rgba(255,255,255,0.05); 
+            border-color: #52525b;
+        }
+
+        .btn-danger {
+            background: rgba(220, 38, 38, 0.1);
+            color: #f87171;
+            border-color: rgba(220, 38, 38, 0.2);
+        }
+        .btn-danger:hover { background: rgba(220, 38, 38, 0.2); border-color: rgba(220, 38, 38, 0.4); }
+
+        /* Inputs */
+        .modern-input {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glass-border);
+            color: white;
+            transition: all 0.2s;
+        }
+        .modern-input:focus {
+            background: rgba(0,0,0,0.4);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            outline: none;
+        }
+
+        /* Table */
+        .custom-table thead th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #a1a1aa;
+            padding-bottom: 1rem;
+        }
+        
+        .table-row {
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        
+        /* Tìm đoạn này và thay thế */
+        .table-row:hover {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.05);
+            transform: scale(1.005);  /* <-- Đã sửa dòng này */
+        }
+
+        /* Status Badge */
+        .status-dot {
+            height: 8px;
+            width: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        /* Animations */
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .animate-float { animation: float 4s ease-in-out infinite; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; opacity: 0; transform: translateY(10px); }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+
+        /* Enhanced Mutations */
+        .mut-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .mut-Normal { background: #3f3f46; color: #d4d4d8; }
+        .mut-Gold { background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.3); }
+        .mut-Rainbow { background: linear-gradient(90deg, rgba(239,68,68,0.2), rgba(59,130,246,0.2)); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.2); }
+        .mut-Galactic { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.3); }
+        .mut-Shiny { background: rgba(34, 197, 94, 0.15); color: #4ade80; border-color: rgba(34, 197, 94, 0.3); box-shadow: 0 0 10px rgba(34,197,94,0.1); }
+
+        /* Checkbox */
+        .checkbox-modern {
+            appearance: none;
+            width: 18px; height: 18px;
+            border: 2px solid #52525b;
+            border-radius: 5px;
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .checkbox-modern:checked {
+            background: #6366f1;
+            border-color: #6366f1;
+        }
+        .checkbox-modern:checked::after {
+            content: '✓'; position: absolute;
+            color: white; font-size: 12px;
+            left: 2px; top: -2px; font-weight: 800;
+        }
+
+        /* Utility */
+        .text-shadow { text-shadow: 0 0 20px rgba(99, 102, 241, 0.5); }
+
+
+        /* Hiển thị danh sách Pet dạng xổ xuống */
+        .pet-list-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .pet-list-container.show {
+            max-height: 1000px; /* Đủ lớn để hiện hết */
+        }
+
+        /* Item Pet từng dòng */
+        .pet-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            margin: 4px 0;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        /* Màu sắc các loại Mutation (Giống hi.html) */
+        .mutation-normal { color: #d1d5db; }
+        .mutation-gold { color: #fbbf24; text-shadow: 0 0 5px rgba(251, 191, 36, 0.3); }
+        .mutation-rainbow { 
+            background: linear-gradient(90deg, #ef4444, #3b82f6); 
+            -webkit-background-clip: text; color: transparent; font-weight: bold; 
+        }
+        .mutation-shiny { color: #34d399; text-shadow: 0 0 5px rgba(52, 211, 153, 0.3); }
+        .mutation-galactic { color: #c084fc; }
+
+        /* Tab Switcher */
+        .tab-switcher {
+            background: #111111;
+            border: 1px solid #1f1f1f;
+            border-radius: 6px;
+            padding: 3px;
+            display: inline-flex;
+            gap: 2px;
+        }
+
+        .tab-btn {
+            padding: 6px 16px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            color: #71717a;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+        }
+
+        .tab-btn:hover { color: #a1a1aa; }
+        .tab-btn.active { background: #1f1f1f; color: #ffffff; }
+
+        /* Pet Card - Dark Style */
+        .pet-card {
+            background: linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .pet-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+        }
+
+        .pet-card-count {
+            font-size: 32px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .pet-card-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e4e4e7;
+            margin-top: 8px;
+        }
+
+        .pet-card-type { font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-top: 8px; }
+        .pet-card-type.secret { color: #f59e0b; }
+        .pet-card-type.normal { color: #71717a; }
+        .pet-card-variants { font-size: 10px; color: #52525b; margin-top: 4px; }
+
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Sidebar -->
+    <nav class="sidebar fixed left-0 top-0 h-full z-50 w-20 md:w-64 flex flex-col justify-between" id="sidebar">
+
+            <div>
+                <div class="h-20 flex items-center px-6 border-b border-dark-border">
+                    <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20 flex-shrink-0">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <span class="ml-3 font-bold text-xl tracking-tight hidden md:block text-white">Pet<span class="text-indigo-400">Tracker</span></span>
+                </div>
+
+                <div class="p-4 space-y-2">
+                    <a href="#" class="nav-item active flex items-center px-4 py-3" onclick="showSection('pettracker')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                        </svg>
+                        <span class="ml-3 font-medium text-sm hidden md:block">Dashboard</span>
+                    </a>
+
+                    <a href="#" id="nav-extension" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:text-white transition-colors" onclick="switchTab('extension')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path>
+                        </svg>
+                        <span class="ml-3 font-medium text-sm hidden md:block">Extension</span>
+                    </a>
+                    </div>
+            </div>
+
+            <div class="p-4 border-t border-dark-border">
+                <div class="flex items-center p-2 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500 flex items-center justify-center text-xs font-bold text-white shadow-lg">
+                        U
+                    </div>
+                    <div class="ml-3 hidden md:block overflow-hidden">
+                        <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Current Key</p>
+                        <p class="text-sm font-medium truncate text-white" id="userKey">Loading...</p>
+                    </div>
+                    <button onclick="logout()" class="ml-auto text-gray-500 hover:text-red-400 hidden md:block">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </button>
+                </div>
+            </div>
+    </nav>
+
+
+    
+    <!-- Main Content -->
+    <main class="main-content min-h-screen p-6 ml-20 md:ml-64 transition-all duration-300" id="mainContent">
+        <!-- Pet Tracker Section -->
+        <div id="pettracker" class="content-section active">
+            <div class="page-transition">
+                <!-- Header -->
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-float">
+                    <div>
+                        <p class="text-indigo-400 font-medium mb-2 tracking-wide text-sm uppercase">Live Dashboard</p>
+                        <h1 class="text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
+                             <span class="text-gray-600"></span>
+                        </h1>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <div id="autoSaveIndicator" class="hidden items-center gap-2 text-emerald-400 text-xs font-bold bg-emerald-400/10 px-3 py-1.5 rounded-full">
+                            <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            SAVING...
+                        </div>
+                        <button onclick="showBackupModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 hover:text-white bg-transparent border border-zinc-700 hover:border-zinc-600 flex items-center gap-1.5 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Backup
+                        </button>
+                        <button onclick="refreshData()" class="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 hover:text-white bg-transparent border border-zinc-700 hover:border-zinc-600 flex items-center gap-1.5 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Connection Status Bar -->
+                <div id="connectionStatus" class="glass-card rounded-xl p-4 mb-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-300">Connection Status:</span>
+                        <span id="connectionText" class="text-sm font-semibold"></span>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="glass-card p-5 rounded-2xl relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition group-hover:scale-110 transform">
+                            <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        </div>
+                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Accounts</p>
+                        <div class="flex items-baseline mt-2">
+                            <span class="text-3xl font-bold text-white" id="totalAccounts">0</span>
+                            <span class="ml-2 text-xs text-gray-500" id="slotInfo">Limit: 0</span>
+                        </div>
+                        <div class="w-full bg-gray-800 h-1 mt-4 rounded-full overflow-hidden">
+                            <div class="bg-white h-full" style="width: 0%" id="slotBar"></div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition group-hover:scale-110 transform">
+                            <svg class="w-16 h-16 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>
+                        </div>
+                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Online Status</p>
+                        <div class="flex items-center mt-2 gap-4">
+                            <div>
+                                <span class="text-2xl font-bold text-emerald-400" id="onlineAccounts">0</span>
+                                <span class="text-xs text-emerald-500/70 block">Active</span>
+                            </div>
+                            <div class="h-8 w-px bg-white/10"></div>
+                            <div>
+                                <span class="text-2xl font-bold text-red-400" id="offlineAccounts">0</span>
+                                <span class="text-xs text-red-500/70 block">Offline</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl relative overflow-hidden group col-span-1 sm:col-span-2">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition group-hover:scale-110 transform">
+                        </div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Pet Statistics</p>
+                                <div class="flex items-baseline mt-2 gap-3">
+                                    <span class="text-3xl font-bold text-indigo-400" id="totalPets">0</span>
+                                    <span class="text-sm text-gray-400">Total collected</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1"><span id="accountsWithPets" class="text-white font-semibold">0</span> accounts have inventory</p>
+                            </div>
+                            
+                            <div class="text-right">
+                                <div class="inline-flex items-center px-3 py-1 rounded-lg bg-white/5 border border-white/10">
+                                    <span class="w-2 h-2 rounded-full bg-orange-400 mr-2 animate-pulse"></span>
+                                    <span class="text-xs font-mono text-orange-300" id="expiryInfo">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+        <!-- Tab Switcher -->
+        <div class="flex justify-center mb-8 mt-6">
+            <div class="tab-switcher">
+                <button class="tab-btn active" id="tabAccounts" onclick="switchDashboardTab('accounts')">ACCOUNTS</button>
+                <button class="tab-btn" id="tabGlobalPets" onclick="switchDashboardTab('globalPets')">GLOBAL PETS</button>
+            </div>
+        </div>
+
+        <!-- ACCOUNTS Section Start -->
+        <div id="accountsSection">
+
+                <!-- Accounts Section -->
+                <div class="glass-card rounded-xl p-4 sm:p-6"><div>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <h2 class="text-base font-semibold text-white">Account List</h2>
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex items-center gap-2">
+                            <span id="selectedCount" class="text-xs text-gray-500 mr-2"></span>
+                            
+                            <button onclick="deleteSelected()" class="px-3 py-1.5 rounded-md text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                Delete
+                            </button>
+                            
+                            <button onclick="clearAllData()" class="px-3 py-1.5 rounded-md text-xs font-medium text-gray-400 bg-white/5 border border-white/10 hover:bg-white/10 transition">
+                                Clear All
+                            </button>
+                            
+                            <select id="pageSizeSelect" class="bg-transparent border border-white/10 rounded-md px-2 py-1.5 text-xs text-gray-400 focus:text-white focus:border-zinc-600 outline-none" onchange="changePageSize()">
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="500">500</option>
+                                <option value="1000">1000</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <span id="lastUpdateTime" class="text-[10px] text-gray-600 mb-4 block">Updated just now</span>
+
+                    <!-- Desktop Table -->
+                    <div class="desktop-table overflow-x-auto modern-table rounded-xl">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-white/5">
+                                    <th class="text-left py-3 px-4 w-10">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-zinc-600 bg-transparent cursor-pointer" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                                    </th>
+                                    <th class="text-left py-3 px-4 text-[11px] text-gray-500 font-medium uppercase tracking-wider">Account</th>
+                                    <th class="text-left py-3 px-4 text-[11px] text-gray-500 font-medium uppercase tracking-wider">Status</th>
+                                    <th class="text-left py-3 px-4 text-[11px] text-gray-500 font-medium uppercase tracking-wider">Pets</th>
+                                    <th class="text-left py-3 px-4 text-[11px] text-gray-500 font-medium uppercase tracking-wider">Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accountsList">
+                                <tr>
+                                    <td colspan="5" class="text-center py-12 text-gray-500">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Cards -->
+
+
+                    <!-- Pagination -->
+                    <div class="flex justify-between items-center mt-8" id="paginationControls">
+                        <!-- Pagination buttons will be rendered by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+                <!-- GLOBAL PETS Section -->
+                <div id="globalPetsSection" class="hidden">
+                    <div class="flex flex-col lg:flex-row gap-4 justify-between mb-6">
+                        <div class="relative flex-1 max-w-md">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </div>
+                            <input type="text" id="globalPetSearchInput" oninput="searchGlobalPets()" class="modern-input w-full rounded-xl py-3 pl-11 pr-4 text-sm" placeholder="Search pets...">
+                        </div>
+                        <span id="globalPetCount" class="text-gray-400 text-sm"></span>
+                    </div>
+                    <div id="globalPetsGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+                </div>
+
+            </div>
+        </div>      
+
+        <div id="extension-view" class="content-section hidden w-full animate-fadeIn min-h-screen">
+            
+            <div id="extension-menu">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+                    <div>
+                        <button onclick="switchTab('pettracker')" class="group flex items-center text-sm text-gray-400 hover:text-white mb-2 transition-colors">
+                            <svg class="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                            Back to Dashboard
+                        </button>
+                        <h1 class="text-3xl md:text-4xl font-bold text-white">Extension <span class="text-indigo-400">Tools</span></h1>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    
+                    <div class="glass-card rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-300 group hover:-translate-y-1">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20 group-hover:bg-blue-500/20 transition-all">
+                                <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14-4H5m14 8H5"></path></svg>
+                            </div>
+                            <h3 class="text-lg font-bold text-white mb-1">TÁCH Tk:Mk:COOKIE</h3>
+                            <button onclick="openToolFrame('tachtkmkck.html', 'Gộp Tài Khoản')" class="mt-4 inline-flex w-full justify-center items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition-all text-sm shadow-lg shadow-blue-500/20">
+                                Mở Tool <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card rounded-2xl p-6 hover:border-emerald-500/50 transition-all duration-300 group hover:-translate-y-1">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-all">
+                                <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                            </div>
+                            <h3 class="text-lg font-bold text-white mb-1">FIND DATA</h3>
+                            <button onclick="openToolFrame('finddata.html', 'Tách Tài Khoản')" class="mt-4 inline-flex w-full justify-center items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl transition-all text-sm shadow-lg shadow-emerald-500/20">
+                                Mở Tool <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    </div>
+            </div>
+
+            <div id="tool-workspace" class="hidden flex flex-col h-full">
+                <div class="flex items-center justify-between mb-4 pb-4 border-b border-white/10">
+                    <div class="flex items-center gap-4">
+                        <button onclick="closeToolFrame()" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-300 flex items-center gap-2 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                            Back to List
+                        </button>
+                        <h2 id="current-tool-title" class="text-xl font-bold text-white">Tool Name</h2>
+                    </div>
+                    
+                    <a id="open-new-tab-btn" href="#" target="_blank" class="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                        Open in new tab <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                </div>
+
+                <div class="flex-1 bg-white/5 rounded-xl overflow-hidden border border-white/10 relative">
+                    <div id="iframe-loader" class="absolute inset-0 flex items-center justify-center text-indigo-400">
+                        <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </div>
+                    <iframe id="tool-frame" class="w-full h-[80vh] border-0" onload="document.getElementById('iframe-loader').classList.add('hidden')"></iframe>
+                </div>
+            </div>
+
+        </div>
+        
+    </main>
+
+    <!-- Backup Modal -->
+    <div id="backupModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-2xl p-6 animate-float">
+            <h3 class="text-xl font-bold text-white mb-4">Backup Manager</h3>
+            <p class="text-sm text-gray-400 mb-6">Export your current database to a local JSON file or restore from a previous save.</p>
+            
+            <div class="space-y-3">
+                <button onclick="createBackup()" class="w-full py-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl font-semibold hover:bg-emerald-500/20 transition">
+                    Download Backup (.json)
+                </button>
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-white/10"></div>
+                    </div>
+                    <div class="relative flex justify-center text-xs uppercase">
+                        <span class="bg-[#18181b] px-2 text-gray-500">Or</span>
+                    </div>
+                </div>
+                <button disabled class="w-full py-3 bg-white/5 text-gray-500 rounded-xl font-semibold cursor-not-allowed border border-white/5">
+                    Restore (Coming Soon)
+                </button>
+            </div>
+            <button onclick="closeBackupModal()" class="mt-6 w-full py-2 text-gray-400 hover:text-white text-sm">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const BASE_PATH = "/trackgameantrom";
+        const API_BASE_URL = window.location.origin + BASE_PATH;
+
+        let accountsData = {};
+        let keyInfo = null;
+        let petFilter = [];
+        let petSearchQuery = '';  // ← THÊM DÒNG NÀY
+        let pageSize = 20;
+        let currentPage = 1;
+        let filteredAccounts = [];
+        let selectedAccounts = new Set();
+        let isLoading = false;
+        let lastFetchTime = null;
+
+
+        // ===== THAY ĐỔI: Status Logic Chuẩn =====
+        // ===== HEARTBEAT STATUS =====
+        // Script Lua gửi heartbeat mỗi 30s, online = có heartbeat trong 60s
+        const ONLINE_THRESHOLD = 60 * 1000;  // 60 giây
+
+
+        // Sidebar functions
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            
+            sidebar.classList.toggle('sidebar-collapsed');
+            mainContent.classList.toggle('sidebar-collapsed');
+            
+            // Save sidebar state
+            const isCollapsed = sidebar.classList.contains('sidebar-collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+        }
+
+        // Hàm chuyển đổi Tab (Dashboard <-> Extension)
+        function switchTab(tabName) {
+            // 1. Xử lý nội dung chính (Ẩn/Hiện)
+            const dashboardView = document.getElementById('pettracker'); // ID của dashboard cũ
+            const extensionView = document.getElementById('extension-view'); // ID của extension mới
+
+            if (tabName === 'extension') {
+                // Chuyển sang Extension
+                dashboardView.classList.add('hidden');
+                extensionView.classList.remove('hidden');
+                
+                // Cuộn lên đầu trang
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                // Quay về Dashboard
+                dashboardView.classList.remove('hidden');
+                extensionView.classList.add('hidden');
+            }
+
+            // 2. Xử lý Sidebar (Active state)
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                // Reset style cũ
+                item.classList.remove('active', 'bg-indigo-500/10', 'text-indigo-400', 'border-indigo-500/20');
+                item.classList.add('text-gray-400');
+            });
+
+            // Tìm nút đang active để highlight
+            // Logic này tìm nút có onclick chứa tên tab
+            const activeBtn = Array.from(navItems).find(btn => btn.getAttribute('onclick')?.includes(tabName));
+            
+            if (activeBtn) {
+                activeBtn.classList.add('active', 'bg-indigo-500/10', 'text-indigo-400');
+                activeBtn.classList.remove('text-gray-400');
+            }
+        }
+
+        // Hàm mở Tool trong cùng trang (Iframe)
+        function openToolFrame(fileUrl, title) {
+            // 1. Ẩn menu danh sách
+            document.getElementById('extension-menu').classList.add('hidden');
+            
+            // 2. Hiện khung workspace
+            document.getElementById('tool-workspace').classList.remove('hidden');
+            
+            // 3. Cập nhật tiêu đề và link
+            document.getElementById('current-tool-title').textContent = title;
+            document.getElementById('open-new-tab-btn').href = fileUrl;
+            
+            // 4. Load file vào iframe
+            const iframe = document.getElementById('tool-frame');
+            // Hiện loader trước
+            document.getElementById('iframe-loader').classList.remove('hidden');
+            iframe.src = fileUrl;
+        }
+
+        // Hàm đóng Tool (Quay về danh sách)
+        function closeToolFrame() {
+            // 1. Ẩn workspace
+            document.getElementById('tool-workspace').classList.add('hidden');
+            
+            // 2. Hiện menu danh sách
+            document.getElementById('extension-menu').classList.remove('hidden');
+            
+            // 3. Xóa src iframe để dừng xử lý (nhẹ máy)
+            document.getElementById('tool-frame').src = '';
+        }
+
+        function showSection(sectionName) {
+            // Update active nav item
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+            
+            if (sectionName === 'pettracker') {
+                initializePetTracker();
+            }
+        }
+
+        // Pet Tracker functions
+        function initializePetTracker() {
+            if (!getStoredKey()) {
+                return;
+            }
+            
+            // Load real data
+            refreshData();
+        }
+
+        function updatePetTrackerUI() {
+            // Hàm hỗ trợ điền text an toàn (không báo lỗi nếu thiếu thẻ)
+            const safeSetText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = text;
+            };
+
+            if (keyInfo) {
+                // Cập nhật Key hiển thị (nếu có thẻ)
+                safeSetText('displayKey', keyInfo.key.substring(0, 8) + '***');
+                safeSetText('userKey', 'Key: ' + keyInfo.key.substring(0, 8) + '***');
+
+                // Cập nhật ngày hết hạn
+                const expiryDate = new Date(keyInfo.expiry);
+                const daysLeft = Math.ceil((expiryDate - Date.now()) / (1000 * 60 * 60 * 24));
+                
+                const expiryEl = document.getElementById('expiryInfo');
+                if (expiryEl) {
+                    expiryEl.textContent = `${daysLeft} days left`;
+                    // Reset class màu cũ
+                    expiryEl.classList.remove('text-red-400', 'text-yellow-400', 'font-bold');
+                    
+                    // Thêm màu cảnh báo mới
+                    if (daysLeft <= 7) expiryEl.classList.add('text-red-400', 'font-bold');
+                    else if (daysLeft <= 30) expiryEl.classList.add('text-yellow-400');
+                }
+            }
+
+            const accounts = Object.keys(accountsData).length;
+            const maxSlots = keyInfo?.slots || 0;
+            
+            // Cập nhật slot (nếu có thẻ)
+            const slotEl = document.getElementById('slotInfo');
+            if (slotEl) {
+                slotEl.textContent = `${accounts}/${maxSlots}`;
+                slotEl.classList.remove('text-red-400', 'text-yellow-400');
+                
+                if (accounts >= maxSlots) slotEl.classList.add('text-red-400');
+                else if (accounts >= maxSlots * 0.9) slotEl.classList.add('text-yellow-400');
+            }
+            
+            // Gọi các hàm hiển thị bảng và thống kê
+            renderStats();
+            renderAccountsList();
+        }
+
+        // Hàm kiểm tra status (Đã fix lỗi thiếu trường hợp > 1 giờ)
+        // Hàm kiểm tra status - dùng lastHeartbeat
+        function getAccountStatus(account) {
+            // Dùng lastHeartbeat (script gửi mỗi 30s)
+            const heartbeat = account.lastHeartbeat;
+            
+            if (!heartbeat) {
+                return { statusText: 'Never', statusClass: 'text-gray-500', priority: 2, isOnline: false };
+            }
+            
+            const diffMs = Date.now() - new Date(heartbeat).getTime();
+            
+            // ONLINE: heartbeat trong 60s
+            if (diffMs <= ONLINE_THRESHOLD) {
+                return { statusText: 'Online', statusClass: 'text-emerald-400', priority: 0, isOnline: true };
+            }
+            
+            // OFFLINE
+            const mins = Math.floor(diffMs / 60000);
+            const hours = Math.floor(mins / 60);
+            const text = hours > 0 ? `${hours}h ago` : `${mins}m ago`;
+            return { statusText: text, statusClass: 'text-red-400', priority: 1, isOnline: false };
+        }
+
+        // Stats rendering (Đã đồng bộ logic với hi.html)
+        function renderStats() {
+            // Kiểm tra an toàn dữ liệu
+            if (!accountsData) return;
+
+            const accounts = Object.entries(accountsData);
+            let onlineCount = 0, offlineCount = 0, totalPets = 0, accountsWithPets = 0;
+            let totalCandy = 0, accountsWithCandy = 0; // ← THÊM DÒNG NÀY
+            
+            accounts.forEach(([name, account]) => {
+                // Lấy status (đã fix ở bước 1)
+                const status = getAccountStatus(account);
+                
+                // Logic đếm: Priority 0 là Online, còn lại là Offline
+                if (status.priority === 0) {
+                    onlineCount++;
+                } else {
+                    offlineCount++;
+                }
+                
+                // Đếm Pet
+                if (account.pets && account.pets.length > 0) {
+                    accountsWithPets++;
+                    totalPets += account.pets.length;
+                }
+
+                // Đếm Candy
+                if (account.candy && account.candy > 0) {
+                    accountsWithCandy++;
+                    totalCandy += account.candy;
+                }
+            });
+            
+            // Hiển thị lên giao diện (Sử dụng safe check để tránh lỗi null nếu thiếu thẻ)
+            const setSafe = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+
+            setSafe('totalAccounts', accounts.length);
+            setSafe('onlineAccounts', onlineCount);
+            setSafe('offlineAccounts', offlineCount); // Gộp cả offline và warning vào đây giống hi.html
+            setSafe('totalPets', totalPets);
+            setSafe('accountsWithPets', accountsWithPets);
+            setSafe('totalCandy', totalCandy.toLocaleString()); // Format with commas
+            setSafe('accountsWithCandy', accountsWithCandy);
+        }
+
+
+        // Pet search functions
+        function searchPets() {
+            const searchInput = document.getElementById('petSearchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            const resultsDiv = document.getElementById('petSearchResults');
+            
+            petSearchQuery = searchInput.value.trim().toLowerCase();
+            
+            // Show/hide clear button
+            if (petSearchQuery) {
+                clearBtn.classList.remove('hidden');
+                // Clear multi-pet filter when using search
+                petFilter = [];
+                document.getElementById('petFilterSelect').selectedIndex = -1;
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+            
+            // Reset to first page
+            currentPage = 1;
+            selectedAccounts.clear();
+            
+            // Render accounts with search filter
+            renderAccountsList();
+            
+            // Show search results info
+            if (petSearchQuery) {
+                const matchingAccounts = filteredAccounts.length;
+                resultsDiv.textContent = `Found ${matchingAccounts} account${matchingAccounts !== 1 ? 's' : ''} with "${searchInput.value}"`;
+                resultsDiv.classList.remove('text-gray-400');
+                resultsDiv.classList.add('text-green-400', 'font-semibold');
+            } else {
+                resultsDiv.textContent = '';
+            }
+        }
+
+        function clearPetSearch() {
+            const searchInput = document.getElementById('petSearchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            const resultsDiv = document.getElementById('petSearchResults');
+            
+            searchInput.value = '';
+            petSearchQuery = '';
+            clearBtn.classList.add('hidden');
+            resultsDiv.textContent = '';
+            
+            currentPage = 1;
+            selectedAccounts.clear();
+            renderAccountsList();
+        }
+
+        // Pet filter functions
+        function togglePetFilter() {
+            const box = document.getElementById('petFilterBox');
+            box.classList.toggle('hidden');
+            if (!box.classList.contains('hidden')) renderPetFilterOptions();
+        }
+
+        function renderPetFilterOptions() {
+            const select = document.getElementById('petFilterSelect');
+            const petNames = new Set();
+            Object.values(accountsData).forEach(acc => {
+                if (acc.pets) acc.pets.forEach(pet => petNames.add(pet.name));
+            });
+            
+            const sortedPets = Array.from(petNames).sort();
+            select.innerHTML = sortedPets.map(name =>
+                `<option value="${name}">${name}</option>`
+            ).join('');
+        }
+
+        function applyPetFilter() {
+            const select = document.getElementById('petFilterSelect');
+            petFilter = Array.from(select.selectedOptions).map(opt => opt.value);
+            
+            // Clear search when using multi-pet filter
+            if (petFilter.length > 0) {
+                petSearchQuery = '';
+                document.getElementById('petSearchInput').value = '';
+                document.getElementById('clearSearchBtn').classList.add('hidden');
+                document.getElementById('petSearchResults').textContent = '';
+            }
+            
+            currentPage = 1;
+            selectedAccounts.clear();
+            renderAccountsList();
+            showNotification(`Filter applied: ${petFilter.length} pet types selected`, 'info');
+        }
+
+        function clearPetFilter() {
+            petFilter = [];
+            currentPage = 1;
+            selectedAccounts.clear();
+            document.getElementById('petFilterSelect').selectedIndex = -1;
+            renderAccountsList();
+            showNotification('Filter cleared', 'info');
+        }
+
+        // Selection functions
+        function toggleSelectAll() {
+            const isChecked = document.getElementById('selectAllCheckbox').checked;
+            selectedAccounts.clear();
+            
+            if (isChecked) {
+                const startIdx = (currentPage - 1) * pageSize;
+                const pageAccounts = filteredAccounts.slice(startIdx, startIdx + pageSize);
+                pageAccounts.forEach(([name]) => selectedAccounts.add(name));
+            }
+            
+            renderAccountsList();
+        }
+
+        function selectAllFiltered() {
+            selectedAccounts.clear();
+            filteredAccounts.forEach(([name]) => selectedAccounts.add(name));
+            renderAccountsList();
+            showNotification(`Selected ${filteredAccounts.length} accounts`, 'success');
+        }
+
+        function toggleAccountSelection(accountName) {
+            if (selectedAccounts.has(accountName)) {
+                selectedAccounts.delete(accountName);
+            } else {
+                selectedAccounts.add(accountName);
+            }
+            updateSelectAllCheckbox();
+        }
+
+        function updateSelectAllCheckbox() {
+            const startIdx = (currentPage - 1) * pageSize;
+            const pageAccounts = filteredAccounts.slice(startIdx, startIdx + pageSize);
+            const selectedOnPage = pageAccounts.filter(([name]) => selectedAccounts.has(name)).length;
+            
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            selectAllCheckbox.checked = selectedOnPage === pageAccounts.length && pageAccounts.length > 0;
+            selectAllCheckbox.indeterminate = selectedOnPage > 0 && selectedOnPage < pageAccounts.length;
+            
+            // THÊM DÒNG NÀY: Hiển thị số lượng đã chọn
+            const countEl = document.getElementById('selectedCount');
+            if (countEl) {
+                countEl.textContent = selectedAccounts.size > 0 ? `${selectedAccounts.size} selected` : '';
+            }
+        }
+        
+        function renderAccountsList() {
+            let accounts = Object.entries(accountsData);
+
+            // Filter Logic (Giữ nguyên)
+            if (petSearchQuery) {
+                accounts = accounts.filter(([_, acc]) => acc.pets && acc.pets.some(pet => pet.name.toLowerCase().includes(petSearchQuery)));
+            } else if (petFilter.length > 0) {
+                accounts = accounts.filter(([_, acc]) => acc.pets && acc.pets.some(pet => petFilter.includes(pet.name)));
+            }
+
+            filteredAccounts = accounts;
+            // Sắp xếp: Online lên đầu -> Offline -> Tên A-Z
+            accounts.sort((a, b) => {
+                const statusA = getAccountStatus(a[1]);
+                const statusB = getAccountStatus(b[1]);
+
+                // So sánh độ ưu tiên (0 là Online, 1 là Offline, 2 là Chưa update)
+                if (statusA.priority !== statusB.priority) {
+                    return statusA.priority - statusB.priority; // Số nhỏ (Online) lên đầu
+                }
+
+                // Nếu cùng trạng thái thì sắp xếp theo tên
+                return a[0].localeCompare(b[0]);
+            });
+
+            // Pagination
+            const startIdx = (currentPage - 1) * pageSize;
+            const pageAccounts = accounts.slice(startIdx, startIdx + pageSize);
+            const listEl = document.getElementById('accountsList');
+
+            if (pageAccounts.length === 0) {
+            listEl.innerHTML = '<tr><td colspan="5" class="text-center py-12 text-gray-500">No accounts found</td></tr>';
+
+                return;
+            }
+
+            // Desktop Render
+            listEl.innerHTML = pageAccounts.map(([name, account]) => {
+                const status = getAccountStatus(account);
+                const pets = account.pets || [];
+                
+                // Logic cũ: Gọi renderPetsHTML để tạo list xổ xuống
+                const petListHtml = pets.length > 0 ? renderPetsHTML(pets, name) : '';
+
+                return `
+                <tr class="hover:bg-white/[0.02] transition-all border-b border-white/[0.03] last:border-0 group">
+                    <td class="py-3 px-4">
+                        <input type="checkbox" class="w-4 h-4 rounded border-zinc-700 bg-transparent cursor-pointer"
+                            ${selectedAccounts.has(name) ? 'checked' : ''}
+                            onchange="toggleAccountSelection('${name}')">
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="text-sm text-gray-300 font-medium">${name}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="inline-flex items-center gap-1.5 text-[11px] font-medium ${status.statusClass}">
+                            <span class="w-1.5 h-1.5 rounded-full ${status.isOnline ? 'bg-emerald-400' : 'bg-red-400'}"></span>
+                            ${status.statusText}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        ${pets.length > 0 ? `
+                            <span class="text-xs text-gray-400">${pets.length} pets</span>
+                            ${petListHtml}
+                        ` : '<span class="text-xs text-gray-600">—</span>'}
+                    </td>
+                    <td class="py-3 px-4 text-xs text-gray-600 font-mono">
+                        ${account.lastUpdate ? new Date(account.lastUpdate).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}) : '—'}
+                    </td>
+                </tr>
+                `;
+            }).join('');
+
+
+            updateSelectAllCheckbox();
+            renderPaginationControls(Math.ceil(filteredAccounts.length / pageSize));
+        }
+
+        //  Thêm hàm togglePetList
+        function togglePetList(name) {
+            const el = document.getElementById(`petList-${name}`);
+            if (el) el.classList.toggle('hidden');
+        }
+
+        function formatLastUpdate(lastUpdate) {
+            const date = new Date(lastUpdate);
+            const now = new Date();
+            const diffMs = now - date;
+            
+            if (diffMs < 60000) { // Less than 1 minute
+                return 'Just now';
+            } else if (diffMs < 3600000) { // Less than 1 hour
+                const minutes = Math.floor(diffMs / 60000);
+                return `${minutes}m ago`;
+            } else if (diffMs < 86400000) { // Less than 1 day
+                const hours = Math.floor(diffMs / 3600000);
+                return `${hours}h ago`;
+            } else {
+                return date.toLocaleString('en-US');
+            }
+        }
+
+        function renderPetsHTML(pets, accountName = null) {
+            if (pets.length === 0) return '';
+            
+            // Gộp pet giống nhau
+            const petMap = {};
+            pets.forEach(pet => {
+                const key = `${pet.name}|${pet.mut}`;
+                if (!petMap[key]) {
+                    petMap[key] = { name: pet.name, mut: pet.mut, count: 0 };
+                }
+                petMap[key].count += (pet.count || 1);
+            });
+            
+            const petId = `petlist-${accountName ? accountName.replace(/\s+/g, '-') : 'unknown'}-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+            const petEntries = Object.values(petMap);
+            
+            // Style cũ: div thường, không absolute, class mutation chuẩn
+            return `
+                <div class="mt-2">
+                    <div class="flex items-center gap-2 cursor-pointer select-none" onclick="togglePetList('${petId}')">
+                        <span class="text-indigo-400 font-bold text-xs hover:underline">
+                            View List (${petEntries.length})
+                        </span>
+                        <span id="arrow-${petId}" class="text-gray-500 text-[10px] transition-transform duration-200">▼</span>
+                    </div>
+                    
+                    <div id="${petId}" class="pet-list-container mt-1 pl-2 border-l-2 border-white/10">
+                        ${petEntries.map(pet => `
+                            <div class="pet-item">
+                                <span class="${getMutationClass(pet.mut)} font-medium">
+                                    ${pet.mut !== 'Normal' ? `[${pet.mut}]` : ''} ${pet.name}
+                                </span>
+                                <span class="text-white font-mono font-bold ml-2 bg-white/10 px-1.5 rounded text-xs">
+                                    x${pet.count}
+                                </span>
+                            </div>
+                        `).join('')}
+                        <button class="mt-2 text-[10px] bg-emerald-600/20 text-emerald-400 px-2 py-1 rounded border border-emerald-600/30 hover:bg-emerald-600/30 w-full text-left"
+                                onclick="exportPetData(event, '${accountName}')">
+                             Export Excel
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Thêm hàm hỗ trợ màu sắc cho Pet (Dán ngay dưới hàm trên)
+        function getMutationColorClass(mut) {
+            if(mut === 'Rainbow') return 'text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400';
+            if(mut === 'Shiny') return 'text-emerald-300';
+            if(mut === 'Gold') return 'text-yellow-400';
+            if(mut === 'Galactic') return 'text-purple-400';
+            return 'text-gray-300';
+        }
+
+        // Hàm toggle class 'show' để xổ xuống
+        function togglePetList(petId) {
+            const container = document.getElementById(petId);
+            const arrow = document.getElementById(`arrow-${petId}`);
+            
+            if (container) {
+                container.classList.toggle('show');
+                if (arrow) {
+                    // Xoay mũi tên
+                    arrow.style.transform = container.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+                }
+            }
+        }
+
+        // Hàm lấy class màu cho mutation (Khớp với CSS ở Bước 1)
+        function getMutationClass(mut) {
+            if (mut === 'Rainbow') return 'mutation-rainbow';
+            if (mut === 'Shiny') return 'mutation-shiny';
+            if (mut === 'Gold') return 'mutation-gold';
+            if (mut === 'Galactic') return 'mutation-galactic';
+            return 'mutation-normal';
+        }
+
+        // Export pet data to Excel
+        function exportPetData(event, accountName) {
+            event.stopPropagation();
+            
+            if (!accountsData[accountName] || !accountsData[accountName].pets) {
+                showNotification('No pets to export', 'warning');
+                return;
+            }
+            
+            const pets = accountsData[accountName].pets;
+            
+            // Gộp pets
+            const petMap = {};
+            pets.forEach(pet => {
+                const key = `${pet.name}|${pet.mut}`;
+                if (!petMap[key]) {
+                    petMap[key] = {
+                        'Pet Name': pet.name.replace(/^Secret\s+/, ''),
+                        'Mutation': pet.mut,
+                        'Total Count': 0
+                    };
+                }
+                petMap[key]['Total Count'] += (pet.count || 1);
+            });
+            
+            const data = Object.values(petMap);
+            
+            // Tạo workbook
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Pets");
+            
+            // Style cột
+            ws['!cols'] = [
+                { wch: 25 },
+                { wch: 15 },
+                { wch: 12 }
+            ];
+            
+            // Download
+            XLSX.writeFile(wb, `${accountName}_pets_${getTimestamp()}.xlsx`);
+            showNotification(`Exported ${data.length} pet types!`, 'success');
+        }
+
+        function togglePetDetails(petId) {
+            const detailsEl = document.getElementById(`details-${petId}`);
+            if (detailsEl) {
+                detailsEl.classList.toggle('show');
+            }
+        }
+
+        function getMutationClass(mutation) {
+            const map = {
+                'Normal': 'mutation-normal',
+                'Gold': 'mutation-gold',
+                'Galactic': 'mutation-galactic',
+                'Rainbow': 'mutation-rainbow',
+                'Bubblegum': 'mutation-bubblegum',
+                'Nyan': 'mutation-nyan',
+                'Shiny': 'mutation-shiny'
+            };
+            return map[mutation] || 'mutation-normal';
+        }
+
+        function renderPaginationControls(totalPages) {
+            const controls = document.getElementById('paginationControls');
+            if (totalPages <= 1) {
+                controls.innerHTML = '';
+                return;
+            }
+            
+            const prevDisabled = currentPage === 1;
+            const nextDisabled = currentPage === totalPages;
+            
+            // Generate page numbers
+            let pageNumbers = [];
+            const showPages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(showPages / 2));
+            let endPage = Math.min(totalPages, startPage + showPages - 1);
+            
+            if (endPage - startPage < showPages - 1) {
+                startPage = Math.max(1, endPage - showPages + 1);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                pageNumbers.push(i);
+            }
+            
+            controls.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <button onclick="goToPage(${currentPage - 1})" ${prevDisabled ? 'disabled' : ''} 
+                            class="px-4 py-2 rounded-lg bg-gray-700 text-white text-sm font-semibold ${prevDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-600'} transition-all duration-300">
+                        Previous
+                    </button>
+                    
+                    ${startPage > 1 ? `
+                        <button onclick="goToPage(1)" class="px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-300">1</button>
+                        ${startPage > 2 ? '<span class="text-gray-500">...</span>' : ''}
+                    ` : ''}
+                    
+                    ${pageNumbers.map(page => `
+                        <button onclick="goToPage(${page})" 
+                                class="px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${page === currentPage ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}">
+                            ${page}
+                        </button>
+                    `).join('')}
+                    
+                    ${endPage < totalPages ? `
+                        ${endPage < totalPages - 1 ? '<span class="text-gray-500">...</span>' : ''}
+                        <button onclick="goToPage(${totalPages})" class="px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-300">${totalPages}</button>
+                    ` : ''}
+                    
+                    <button onclick="goToPage(${currentPage + 1})" ${nextDisabled ? 'disabled' : ''} 
+                            class="px-4 py-2 rounded-lg bg-gray-700 text-white text-sm font-semibold ${nextDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-600'} transition-all duration-300">
+                        Next
+                    </button>
+                </div>
+                
+                <div class="flex items-center space-x-4 text-sm">
+                    <span class="text-gray-400">Page ${currentPage} of ${totalPages}</span>
+                    <span class="text-gray-500">(${filteredAccounts.length} accounts total)</span>
+                </div>
+            `;
+        }
+
+        // Export functions
+        function copyFilteredAccounts() {
+            const accountsWithPets = filteredAccounts.filter(([name, acc]) => acc.pets && acc.pets.length > 0);
+            
+            if (accountsWithPets.length === 0) {
+                showNotification('No accounts with pets to export!', 'warning');
+                return;
+            }
+            
+            const fileContent = accountsWithPets.map(([name]) => name).join('\n');
+            downloadFile(fileContent, `accounts_with_pets_${getTimestamp()}.txt`);
+            
+            showNotification(`Exported ${accountsWithPets.length} accounts with pets!`, 'success');
+        }
+        
+        function exportAllFilteredAccounts() {
+            if (filteredAccounts.length === 0) {
+                showNotification('No accounts to export!', 'warning');
+                return;
+            }
+            
+            const fileContent = filteredAccounts.map(([name]) => name).join('\n');
+            const filterInfo = petFilter.length > 0 ? `_filtered_${petFilter.length}pets` : '_all';
+            downloadFile(fileContent, `accounts${filterInfo}_${getTimestamp()}.txt`);
+            
+            showNotification(`Exported ${filteredAccounts.length} accounts!`, 'success');
+        }
+
+        function downloadFile(content, filename) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
+        function getTimestamp() {
+            return new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        }
+
+        // Delete functions
+        async function deleteSelected() {
+            if (selectedAccounts.size === 0) {
+                showNotification('Please select at least 1 account to delete!', 'warning');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete ${selectedAccounts.size} selected accounts?`)) {
+                return;
+            }
+            
+            showAutoSaveIndicator(true);
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (const accountName of selectedAccounts) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/accounts/${accountName}`, {
+                        method: 'DELETE',
+                        headers: { 'X-API-Key': keyInfo.key }
+                    });
+                    
+                    if (response.ok) {
+                        delete accountsData[accountName];
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    failCount++;
+                }
+            }
+            
+            showAutoSaveIndicator(false);
+            selectedAccounts.clear();
+            currentPage = 1;
+            
+            updatePetTrackerUI();
+            
+            if (successCount > 0) {
+                showNotification(`Deleted ${successCount} accounts successfully!`, 'success');
+            }
+            if (failCount > 0) {
+                showNotification(`Failed to delete ${failCount} accounts!`, 'error');
+            }
+        }
+
+        // Clear all data
+        async function clearAllData() {
+            if (!confirm('WARNING: This will delete ALL your data! Are you sure?')) {
+                return;
+            }
+            
+            const confirmText = prompt('Type "DELETE" to confirm this action:');
+            if (confirmText !== 'DELETE') {
+                showNotification('Action cancelled', 'info');
+                return;
+            }
+            
+            try {
+                showAutoSaveIndicator(true);
+                const response = await fetch(`${API_BASE_URL}/api/clear`, {
+                    method: 'POST',
+                    headers: { 
+                        'X-API-Key': keyInfo.key,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    accountsData = {};
+                    selectedAccounts.clear();
+                    updatePetTrackerUI();
+                    showNotification('All data cleared successfully (backup created)', 'success');
+                } else {
+                    showNotification('Failed to clear data', 'error');
+                }
+            } catch (error) {
+                console.error('Clear error:', error);
+                showNotification('Error clearing data', 'error');
+            } finally {
+                showAutoSaveIndicator(false);
+            }
+        }
+
+        // Backup functions
+        function showBackupModal() {
+            document.getElementById('backupModal').classList.remove('hidden');
+            loadBackupList();
+        }
+
+        function closeBackupModal() {
+            document.getElementById('backupModal').classList.add('hidden');
+        }
+
+        async function loadBackupList() {
+            try {
+                // Since backup system might not be implemented in simple key auth,
+                // we'll show a placeholder for now
+                const select = document.getElementById('backupList');
+                select.innerHTML = '<option value="">No backups available (Feature coming soon)</option>';
+                
+            } catch (error) {
+                console.error('Error loading backups:', error);
+                showNotification('Failed to load backups', 'error');
+            }
+        }
+
+        async function createBackup() {
+            try {
+                showAutoSaveIndicator(true);
+                
+                // Create local backup by downloading current data
+                const backupData = {
+                    timestamp: new Date().toISOString(),
+                    keyInfo: keyInfo,
+                    accountsData: accountsData,
+                    version: '4.0.0-simple-key'
+                };
+                
+                const jsonContent = JSON.stringify(backupData, null, 2);
+                downloadFile(jsonContent, `pet_tracker_backup_${getTimestamp()}.json`);
+                
+                showNotification('Backup downloaded successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error creating backup:', error);
+                showNotification('Failed to create backup', 'error');
+            } finally {
+                showAutoSaveIndicator(false);
+            }
+        }
+
+        async function restoreBackup() {
+            showNotification('Backup restore feature coming soon. For now, use the data export/import functionality.', 'info');
+        }
+
+        // Enhanced notification function
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                warning: 'bg-yellow-600',
+                info: 'bg-blue-600'
+            };
+            
+            notification.className = `notification fixed top-6 right-6 ${colors[type]} text-white px-6 py-4 rounded-xl shadow-xl z-50 transition-all duration-500 transform translate-x-full font-semibold`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 10);
+            
+            // Remove after delay
+            setTimeout(() => {
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => notification.remove(), 500);
+            }, 3500);
+        }
+
+        // Pagination
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSizeSelect').value, 10);
+            currentPage = 1;
+            renderAccountsList();
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            renderAccountsList();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Refresh data
+        async function refreshData() {
+            console.log('Refreshing data...');
+            
+            if (!keyInfo?.key) {
+                if (!getStoredKey()) {
+                    return;
+                }
+            }
+            
+            const success = await fetchData();
+            
+            if (success) {
+                selectedAccounts.clear();
+                updatePetTrackerUI();
+                showNotification('Data refreshed successfully!', 'success');
+            } else {
+                showNotification('Failed to refresh data', 'error');
+            }
+        }
+
+        // Connection status
+        function updateConnectionStatus(status, message) {
+            const statusBar = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('connectionText');
+            
+            if (status === 'error') {
+                statusBar.classList.remove('hidden');
+                statusText.textContent = 'ERROR: ' + message;
+                statusText.className = 'text-sm text-red-400 font-semibold';
+            } else if (status === 'success') {
+                statusBar.classList.add('hidden');
+            } else if (status === 'loading') {
+                statusBar.classList.remove('hidden');
+                statusText.textContent = 'LOADING: ' + message;
+                statusText.className = 'text-sm text-yellow-400 font-semibold';
+            }
+        }
+
+        // Show auto-save indicator
+        function showAutoSaveIndicator(show = true) {
+            const indicator = document.getElementById('autoSaveIndicator');
+            if (show) {
+                indicator.classList.remove('hidden');
+                indicator.classList.add('flex');
+            } else {
+                indicator.classList.add('hidden');
+                indicator.classList.remove('flex');
+            }
+        }
+
+        // Fetch data with retry logic
+        async function fetchData(retryCount = 3) {
+            if (isLoading) return false;
+            isLoading = true;
+            
+            try {
+                updateConnectionStatus('loading', 'Loading data...');
+                
+                const accountsResponse = await fetch(`${API_BASE_URL}/api/accounts`, {
+                    headers: { 'X-API-Key': keyInfo.key }
+                });
+                
+                if (accountsResponse.status === 401) {
+                    showNotification('Invalid key. Please login again.', 'error');
+                    logout();
+                    return false;
+                }
+                
+                if (!accountsResponse.ok) {
+                    throw new Error('Failed to fetch accounts');
+                }
+                
+                const accountsResult = await accountsResponse.json();
+                accountsData = accountsResult.data || {};
+                
+                // Update last fetch time
+                lastFetchTime = new Date();
+                updateLastFetchTime();
+                
+                updateConnectionStatus('success', '');
+                return true;
+                
+            } catch (error) {
+                console.error('Fetch error:', error);
+                
+                if (retryCount > 0) {
+                    updateConnectionStatus('loading', `Retrying... (${retryCount} attempts left)`);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    return fetchData(retryCount - 1);
+                }
+                
+                updateConnectionStatus('error', 'Failed to load data. Please check your connection.');
+                return false;
+                
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        // Update last fetch time display
+        function updateLastFetchTime() {
+            if (!lastFetchTime) return;
+            
+            const element = document.getElementById('lastUpdateTime');
+            const now = new Date();
+            const diff = Math.floor((now - lastFetchTime) / 1000);
+            
+            if (diff < 60) {
+                element.textContent = `Updated ${diff}s ago`;
+            } else if (diff < 3600) {
+                element.textContent = `Updated ${Math.floor(diff / 60)}m ago`;
+            } else {
+                element.textContent = `Updated ${Math.floor(diff / 3600)}h ago`;
+            }
+        }
+
+        // Auth functions for simple key system
+        function getStoredKey() {
+            const storedKey = localStorage.getItem('petTrackerKey');
+            const storedKeyInfo = localStorage.getItem('petTrackerKeyInfo');
+            
+            if (!storedKey) {
+                console.log('No key found, redirecting to login');
+                window.location.href = `${BASE_PATH}/login.html`;
+                return false;
+            }
+            
+            if (storedKeyInfo) {
+                keyInfo = JSON.parse(storedKeyInfo);
+            } else {
+                // If we have key but no info, validate it
+                validateStoredKey(storedKey);
+                return true;
+            }
+            
+            // Check if key is expired
+            if (keyInfo.expiry && new Date(keyInfo.expiry) < new Date()) {
+                showNotification('Your key has expired. Please contact administrator.', 'error');
+                logout();
+                return false;
+            }
+            
+            return true;
+        }
+
+        async function validateStoredKey(key) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: key })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    keyInfo = result.keyInfo;
+                    localStorage.setItem('petTrackerKeyInfo', JSON.stringify(keyInfo));
+                } else {
+                    logout();
+                }
+            } catch (error) {
+                console.error('Key validation error:', error);
+                logout();
+            }
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('petTrackerKey');
+            localStorage.removeItem('petTrackerKeyInfo');
+            window.location.href = `${BASE_PATH}/login.html`;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Pet Tracker Dashboard loading...');
+            
+            // Restore sidebar state
+            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (sidebarCollapsed) {
+                document.getElementById('sidebar').classList.add('sidebar-collapsed');
+                document.getElementById('mainContent').classList.add('sidebar-collapsed');
+            }
+            
+            // Check auth and load data
+            if (!getStoredKey()) {
+                return;
+            }
+            
+            await refreshData();
+            
+            // Update last fetch time every 10 seconds
+            setInterval(updateLastFetchTime, 10000);
+            
+            // // Auto refresh every 60 seconds
+            // setInterval(async () => {
+            //     if (!document.hidden) {
+            //         const success = await fetchData();
+            //         if (success) {
+            //             updatePetTrackerUI();
+            //         }
+            //     }
+            // }, 60000);
+        });
+
+        // // Handle visibility change (refresh when tab becomes active)
+        // document.addEventListener('visibilitychange', async () => {
+        //     if (!document.hidden && lastFetchTime) {
+        //         const timeSinceLastFetch = Date.now() - lastFetchTime;
+        //         if (timeSinceLastFetch > 120000) { // 2 minutes
+        //             await refreshData();
+        //         }
+        //     }
+        // });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'r':
+                        e.preventDefault();
+                        refreshData();
+                        break;
+                    case 'b':
+                        e.preventDefault();
+                        showBackupModal();
+                        break;
+                }
+            }
+            
+            if (e.key === 'Escape') {
+                closeBackupModal();
+            }
+        });
+
+                // Hàm hiển thị danh sách người sở hữu
+        function showPetOwners(petName) {
+            const owners = [];
+            
+            // Duyệt qua tất cả accounts để tìm pet
+            Object.entries(accountsData).forEach(([accName, data]) => {
+                if (data.pets && data.pets.some(p => p.name === petName)) {
+                    owners.push(accName);
+                }
+            });
+
+            if (owners.length === 0) return;
+
+            // Cập nhật giao diện Modal
+            document.getElementById('petOwnersTitle').innerHTML = `Accounts with <span class="text-white">${petName}</span> (${owners.length})`;
+            // Nối tên account thành danh sách dọc
+            document.getElementById('petOwnersList').value = owners.join('\n');
+            
+            // Hiện Modal
+            document.getElementById('petOwnersModal').classList.remove('hidden');
+        }
+
+        // Hàm đóng Modal
+        function closePetOwnersModal() {
+            document.getElementById('petOwnersModal').classList.add('hidden');
+        }
+
+        // Hàm Copy nhanh
+        function copyPetOwnersList() {
+            const textarea = document.getElementById('petOwnersList');
+            textarea.select();
+            document.execCommand('copy'); // Hoặc dùng navigator.clipboard.writeText
+            showNotification('Copied list to clipboard!', 'success');
+        }
+
+        // ========== TAB SWITCHING ==========
+        let globalPetSearchQuery = '';
+
+        function switchDashboardTab(tab) {
+            const accountsSection = document.getElementById('accountsSection');
+            const globalPetsSection = document.getElementById('globalPetsSection');
+            const tabAccounts = document.getElementById('tabAccounts');
+            const tabGlobalPets = document.getElementById('tabGlobalPets');
+
+            if (tab === 'accounts') {
+                accountsSection.classList.remove('hidden');
+                globalPetsSection.classList.add('hidden');
+                tabAccounts.classList.add('active');
+                tabGlobalPets.classList.remove('active');
+            } else {
+                accountsSection.classList.add('hidden');
+                globalPetsSection.classList.remove('hidden');
+                tabAccounts.classList.remove('active');
+                tabGlobalPets.classList.add('active');
+                renderGlobalPets();
+            }
+        }
+
+        function renderGlobalPets() {
+            const petTypes = {};
+            Object.values(accountsData).forEach(account => {
+                if (account.pets) {
+                    account.pets.forEach(pet => {
+                        if (!petTypes[pet.name]) {
+                            petTypes[pet.name] = { name: pet.name, count: 0, variants: new Set() };
+                        }
+                        petTypes[pet.name].count += (pet.count || 1);
+                        petTypes[pet.name].variants.add(pet.mut || 'Normal');
+                    });
+                }
+            });
+
+            let petArray = Object.values(petTypes);
+            if (globalPetSearchQuery) {
+                petArray = petArray.filter(p => p.name.toLowerCase().includes(globalPetSearchQuery.toLowerCase()));
+            }
+            petArray.sort((a, b) => b.count - a.count);
+
+            const gridEl = document.getElementById('globalPetsGrid');
+            document.getElementById('globalPetCount').textContent = `${petArray.length} pet types`;
+
+            if (petArray.length === 0) {
+                gridEl.innerHTML = '<div class="text-gray-500 col-span-full text-center py-12">No pets found</div>';
+                return;
+            }
+
+            gridEl.innerHTML = petArray.map(pet => {
+                const isSecret = pet.name.toLowerCase().includes('secret') || pet.name.toLowerCase().includes('huge');
+                return `
+                <div class="pet-card" onclick="showPetOwners('${pet.name.replace(/'/g, "\\'")}')">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs text-gray-600">${pet.count > 1000 ? (pet.count/1000).toFixed(1)+'K' : pet.count} GEN</span>
+                        <span class="pet-card-count">x${pet.count}</span>
+                    </div>
+                    <div class="pet-card-name">${pet.name}</div>
+                    <div class="pet-card-type ${isSecret ? 'secret' : 'normal'}">${isSecret ? 'SECRET' : 'NORMAL'}</div>
+                    <div class="pet-card-variants">${pet.variants.size} VARIANTS ✦</div>
+                </div>`;
+            }).join('');
+        }
+
+        function searchGlobalPets() {
+            globalPetSearchQuery = document.getElementById('globalPetSearchInput').value.trim();
+            renderGlobalPets();
+        }
+        
+    </script>
+
+        <div id="petOwnersModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-2xl p-6 relative">
+            <h3 id="petOwnersTitle" class="text-xl font-bold text-emerald-400 mb-4 border-b border-white/10 pb-2">Owners List</h3>
+            
+            <textarea id="petOwnersList" class="w-full h-64 bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-gray-300 font-mono focus:outline-none focus:border-indigo-500 resize-none" readonly></textarea>
+            
+            <div class="flex justify-end gap-3 mt-4">
+                <button onclick="copyPetOwnersList()" class="btn-primary px-4 py-2 rounded-lg text-white text-sm font-bold hover:scale-105 transition">
+                    Copy List
+                </button>
+                <button onclick="closePetOwnersModal()" class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 text-sm hover:bg-white/10">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
